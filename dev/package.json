@@ -1,0 +1,15 @@
+{
+  "name": "contracts-template-dev",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local development dependencies for the contracts template.",
+  "license": "(MIT OR Apache-2.0)",
+  "packageManager": "pnpm@10.33.2",
+  "devDependencies": {
+    "@foundry-rs/anvil": "^1.7.0",
+    "@foundry-rs/cast": "^1.7.0",
+    "@foundry-rs/chisel": "^1.7.0",
+    "@foundry-rs/forge": "^1.7.0",
+    "solhint": "6.2.1"
+  }
+}

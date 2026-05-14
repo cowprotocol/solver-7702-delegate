@@ -1,0 +1,79 @@
+name: CI
+
+permissions: {}
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # action v6.0.2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - name: Build
+        run: just build
+
+  lint:
+    name: Lint
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # action v6.0.2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - name: Lint
+        run: just lint
+
+  slither:
+    name: Slither
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # action v6.0.2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # action v8.1.0
+      - name: Install Slither
+        run: uv sync --project dev --locked
+      - name: Slither
+        run: just slither
+
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # action v6.0.2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: ./.github/actions/setup
+      - name: Test
+        run: just test
+      - name: Coverage
+        run: just coverage-check

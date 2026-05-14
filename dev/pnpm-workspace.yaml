@@ -1,0 +1,2 @@
+# Match CoW repos and give new packages 7 days of review time before install.
+minimumReleaseAge: 10080

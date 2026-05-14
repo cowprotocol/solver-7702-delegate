@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+pragma solidity ^0.8;
+
+import {Counter} from "../src/Counter.sol";
+import {Test} from "forge-std/Test.sol";
+
+contract CounterTest is Test {
+    Counter public counter;
+
+    function setUp() public {
+        counter = new Counter();
+        counter.setNumber(0);
+    }
+
+    function test_Increment() public {
+        counter.increment();
+        vm.snapshotGasLastCall("increment - success");
+        assertEq(counter.number(), 1);
+    }
+
+    function testFuzz_SetNumber(uint256 x) public {
+        counter.setNumber(x);
+        assertEq(counter.number(), x);
+    }
+}

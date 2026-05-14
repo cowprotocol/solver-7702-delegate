@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: just-lint
+        name: just lint
+        entry: just lint
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: just-slither
+        name: just slither
+        entry: just slither
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: just-coverage-check
+        name: just coverage-check
+        entry: just coverage-check
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

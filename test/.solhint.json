@@ -1,0 +1,6 @@
+{
+  "rules": {
+    "func-name-mixedcase": "off",
+    "use-natspec": "off"
+  }
+}

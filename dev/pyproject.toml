@@ -1,0 +1,13 @@
+[project]
+name = "python-dev-tools"
+version = "0"
+description = "Development tools installed through Python."
+requires-python = ">=3.11"
+dependencies = [
+    "pre-commit==4.3.0",
+    "slither-analyzer==0.11.5",
+]
+
+[tool.uv]
+package = false
+exclude-newer = "1 week"

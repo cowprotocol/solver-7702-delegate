@@ -1,0 +1,38 @@
+version: 2
+
+multi-ecosystem-groups:
+  dev-dependencies:
+    schedule:
+      interval: weekly
+
+updates:
+  # Dependabot uses the npm ecosystem value for pnpm projects.
+  - package-ecosystem: npm
+    directory: /dev
+    patterns:
+      - "*"
+    cooldown:
+      default-days: 7
+      include:
+        - "*"
+    multi-ecosystem-group: dev-dependencies
+
+  - package-ecosystem: uv
+    directory: /dev
+    patterns:
+      - "*"
+    cooldown:
+      default-days: 7
+      include:
+        - "*"
+    multi-ecosystem-group: dev-dependencies
+
+  - package-ecosystem: github-actions
+    directory: /
+    patterns:
+      - "*"
+    cooldown:
+      default-days: 7
+      include:
+        - "*"
+    multi-ecosystem-group: dev-dependencies
