@@ -1,6 +1,12 @@
 {
-  "7702 submission - reverts when - unauthorized error when revert": "460",
-  "7702 submission - success - forwards large settlement payload": "96271",
-  "7702 submission - success - forwards small settlement payload": "95120",
-  "7702 submission - success - settlement sees solver eoa": "121332"
+  "GPv2Settlement 7702 delegation - success - large settlement with 6 interactions": "239852",
+  "GPv2Settlement 7702 delegation - success - small settlement": "121540",
+  "GPv2Settlement 7702 overhead - success - large settlement with 6 interactions": "0",
+  "GPv2Settlement 7702 overhead - success - small settlement": "13330",
+  "GPv2Settlement direct call - success - large settlement with 6 interactions": "246567",
+  "GPv2Settlement direct call - success - small settlement": "108210",
+  "simple 7702 delegation - reverts - unauthorized caller": "460",
+  "simple 7702 delegation - success - large mock settlement payload": "96271",
+  "simple 7702 delegation - success - mock settlement forwards ETH": "118832",
+  "simple 7702 delegation - success - small mock settlement payload": "95120"
 }
