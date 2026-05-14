@@ -4,7 +4,7 @@ version = "0"
 description = "Development tools installed through Python."
 requires-python = ">=3.11"
 dependencies = [
-    "pre-commit==4.3.0",
+    "pre-commit==4.6.0",
     "slither-analyzer==0.11.5",
 ]
 
