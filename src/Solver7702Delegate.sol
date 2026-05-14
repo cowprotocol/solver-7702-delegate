@@ -34,6 +34,7 @@ contract Solver7702Delegate {
     }
 
     /// @notice Fallback function to handle calls to the delegate
+    /// @dev Expected calldata format is `bytes20(target) || targetCalldata`.
     fallback() external payable {
         // Simply receive ETH
         if (msg.data.length < 20) return;

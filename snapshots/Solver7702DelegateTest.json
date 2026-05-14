@@ -1,0 +1,16 @@
+{
+  "abi encoded envelope - success - does not reach intended target": "3143",
+  "empty calldata - success - receives eth from any caller": "47",
+  "packed calldata - reverts when - target empty data when revert": "3753",
+  "packed calldata - reverts when - target revert data when revert": "3828",
+  "packed calldata - reverts when - unauthorized error when revert": "460",
+  "packed calldata - success - calls target with empty payload": "25406",
+  "packed calldata approved caller 0 - success - first target call gas only": "47667",
+  "packed calldata approved caller 1 - success - repeat target call gas only": "16786",
+  "packed calldata approved caller 2 - success - repeat target call gas only": "16820",
+  "packed calldata approved caller 3 - success - repeat target call gas only": "16854",
+  "packed calldata approved caller 4 - success - repeat target call gas only": "16889",
+  "packed calldata no code target - success - returns empty data": "3131",
+  "packed calldata return data - success - bubbles exact return data": "3767",
+  "packed calldata zero msg value - success - forwards calldata": "26227"
+}
