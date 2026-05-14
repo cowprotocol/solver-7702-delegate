@@ -1,6 +1,6 @@
 # Solver7702Delegate
 
-ERC-7702 delegation target for solver EOAs.
+ERC-7702 delegation target for solver EOAs. Read more about the initiative [here](https://www.notion.so/cownation/Solver7702Delegate-Design-Doc-3588da5f04ca80a1b521c436abf17724).
 
 ## Usage
 
