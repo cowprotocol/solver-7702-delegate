@@ -149,8 +149,14 @@ contract Solver7702DelegateTest is BaseTest {
     function test_unit_fallback_success_forwardsPayloadFromApprovedCallers() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         uint256 totalValue;
-        uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
         address[5] memory callers = _approvedCallers();
+
+        // Prime callCount so slot 0 does not include the one-off zero-to-nonzero SSTORE cost.
+        // This keeps the per-caller gas snapshots focused on the delegate fallback path.
+        (bool primed,) = address(fallbackTarget).call("");
+        assertTrue(primed, "fallback target priming call should succeed");
+
+        uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
 
         // ~~~~~~~~~~ Call + Assertions ~~~~~~~~~~
         for (uint256 i; i < callers.length; ++i) {
@@ -170,7 +176,7 @@ contract Solver7702DelegateTest is BaseTest {
             );
         }
 
-        assertEq(_fallbackCallCount(), callers.length, "fallback target should be called by each approved caller");
+        assertEq(_fallbackCallCount(), callers.length + 1, "fallback target should include priming call");
         assertEq(
             address(fallbackTarget).balance,
             fallbackTargetBalanceBefore + totalValue,
