@@ -421,11 +421,11 @@ contract Solver7702DelegateTest is BaseTest {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         bytes memory customPayload = hex"c0ffee";
         bytes memory payload = abi.encodeCall(RevertingTarget.revertWithCustomError, (77, customPayload));
+
+        // ~~~~~~~~~~ Call ~~~~~~~~~~
         bytes memory expectedRevertData = abi.encodeWithSelector(
             RevertingTarget.TargetCustomError.selector, address(delegateContract), 77, customPayload
         );
-
-        // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
             address(delegateContract).call(_packedCalldata(address(revertingTarget), payload));

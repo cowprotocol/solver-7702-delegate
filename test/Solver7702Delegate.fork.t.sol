@@ -51,7 +51,7 @@ contract Solver7702DelegateForkTest is BaseTest {
             NetworkConfig({
                 name: "arbitrum",
                 rpcEnv: "ARBITRUM_ONE_RPC_URL",
-                forkBlock: 463_053_000,
+                forkBlock: 0, // historical blocks not supported in RPC
                 settlement: GPV2_SETTLEMENT,
                 authenticator: GPV2_AUTHENTICATOR,
                 usdc: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831,
@@ -81,7 +81,7 @@ contract Solver7702DelegateForkTest is BaseTest {
             NetworkConfig({
                 name: "bnb",
                 rpcEnv: "BNB_MAINNET_RPC_URL",
-                forkBlock: 98_412_000,
+                forkBlock: 0, // historical blocks not supported in RPC
                 settlement: GPV2_SETTLEMENT,
                 authenticator: GPV2_AUTHENTICATOR,
                 usdc: 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d,
@@ -126,7 +126,7 @@ contract Solver7702DelegateForkTest is BaseTest {
             NetworkConfig({
                 name: "polygon",
                 rpcEnv: "POLYGON_RPC_URL",
-                forkBlock: 86_914_000,
+                forkBlock: 0, // historical blocks not supported in RPC
                 settlement: GPV2_SETTLEMENT,
                 authenticator: GPV2_AUTHENTICATOR,
                 usdc: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359,
@@ -156,7 +156,7 @@ contract Solver7702DelegateForkTest is BaseTest {
             NetworkConfig({
                 name: "avalanche",
                 rpcEnv: "AVALANCHE_RPC_URL",
-                forkBlock: 0,
+                forkBlock: 0, // historical blocks not supported in RPC
                 settlement: GPV2_SETTLEMENT,
                 authenticator: GPV2_AUTHENTICATOR,
                 usdc: 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E,
@@ -171,7 +171,7 @@ contract Solver7702DelegateForkTest is BaseTest {
             NetworkConfig({
                 name: "ink",
                 rpcEnv: "INK_RPC_URL",
-                forkBlock: 0,
+                forkBlock: 0, // historical blocks not supported in RPC
                 settlement: GPV2_SETTLEMENT,
                 authenticator: GPV2_AUTHENTICATOR,
                 usdc: 0xF1815bd50389c46847f0Bda824eC8da914045D14,
