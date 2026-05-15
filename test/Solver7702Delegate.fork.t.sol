@@ -47,32 +47,152 @@ contract Solver7702DelegateForkTest is BaseTest {
 
     function test_fork_submission_attemptsSimpleWethForUsdcOrder_arbitrum() public {
         // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
-        _attemptSimpleWethForUsdcOrder(_arbitrumNetworkConfig());
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "arbitrum",
+                rpcEnv: "ARBITRUM_ONE_RPC_URL",
+                forkBlock: 463_053_000,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831,
+                weth: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1
+            })
+        );
     }
 
     function test_fork_submission_attemptsSimpleWethForUsdcOrder_base() public {
         // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
-        _attemptSimpleWethForUsdcOrder(_baseNetworkConfig());
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "base",
+                rpcEnv: "BASE_RPC_URL",
+                forkBlock: 46_025_000,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,
+                weth: 0x4200000000000000000000000000000000000006
+            })
+        );
     }
 
     function test_fork_submission_attemptsSimpleWethForUsdcOrder_bnb() public {
         // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
-        _attemptSimpleWethForUsdcOrder(_bnbNetworkConfig());
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "bnb",
+                rpcEnv: "BNB_MAINNET_RPC_URL",
+                forkBlock: 98_412_000,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d,
+                weth: 0x2170Ed0880ac9A755fd29B2688956BD959F933F8
+            })
+        );
     }
 
     function test_fork_submission_attemptsSimpleWethForUsdcOrder_gnosis() public {
         // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
-        _attemptSimpleWethForUsdcOrder(_gnosisNetworkConfig());
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "gnosis",
+                rpcEnv: "GNOSIS_RPC_URL",
+                forkBlock: 46_185_000,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83,
+                weth: 0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1
+            })
+        );
     }
 
     function test_fork_submission_attemptsSimpleWethForUsdcOrder_optimism() public {
         // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
-        _attemptSimpleWethForUsdcOrder(_optimismNetworkConfig());
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "optimism",
+                rpcEnv: "OPTIMISM_RPC_URL",
+                forkBlock: 151_400_000,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85,
+                weth: 0x4200000000000000000000000000000000000006
+            })
+        );
     }
 
     function test_fork_submission_attemptsSimpleWethForUsdcOrder_polygon() public {
         // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
-        _attemptSimpleWethForUsdcOrder(_polygonNetworkConfig());
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "polygon",
+                rpcEnv: "POLYGON_RPC_URL",
+                forkBlock: 86_914_000,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359,
+                weth: 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619
+            })
+        );
+    }
+
+    function test_fork_submission_attemptsSimpleWethForUsdcOrder_plasma() public {
+        // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "plasma",
+                rpcEnv: "PLASMA_RPC_URL",
+                forkBlock: 21_916_000,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb,
+                weth: 0x9895D81bB462A195b4922ED7De0e3ACD007c32CB
+            })
+        );
+    }
+
+    function test_fork_submission_attemptsSimpleWethForUsdcOrder_avalanche() public {
+        // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "avalanche",
+                rpcEnv: "AVALANCHE_RPC_URL",
+                forkBlock: 0,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E,
+                weth: 0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB
+            })
+        );
+    }
+
+    function test_fork_submission_attemptsSimpleWethForUsdcOrder_ink() public {
+        // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "ink",
+                rpcEnv: "INK_RPC_URL",
+                forkBlock: 0,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0xF1815bd50389c46847f0Bda824eC8da914045D14,
+                weth: 0x4200000000000000000000000000000000000006
+            })
+        );
+    }
+
+    function test_fork_submission_attemptsSimpleWethForUsdcOrder_linea() public {
+        // ~~~~~~~~~~ Setup / Call / Assertions ~~~~~~~~~~
+        _attemptSimpleWethForUsdcOrder(
+            NetworkConfig({
+                name: "linea",
+                rpcEnv: "LINEA_RPC_URL",
+                forkBlock: 30_655_000,
+                settlement: GPV2_SETTLEMENT,
+                authenticator: GPV2_AUTHENTICATOR,
+                usdc: 0x176211869cA2b568f2A7D4EE941E073a821EE1ff,
+                weth: 0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f
+            })
+        );
     }
 
     function test_fork_submission_revertsWith_NotSolver_ethereum() public {
@@ -264,14 +384,14 @@ contract Solver7702DelegateForkTest is BaseTest {
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(solver);
-        vm.startSnapshotGas(string.concat("historical order - direct call - ", order.label));
+        vm.startSnapshotGas(string.concat("historical order - ", order.label, " - direct call"));
         (bool directSuccess, bytes memory directReturnData) = config.settlement.call(payload);
         vm.stopSnapshotGas();
 
         vm.revertToState(snapshot);
 
         vm.prank(approvedCallers.first);
-        vm.startSnapshotGas(string.concat("historical order - delegated call - ", order.label));
+        vm.startSnapshotGas(string.concat("historical order - ", order.label, " - delegated call"));
         (bool delegatedSuccess, bytes memory delegatedReturnData) = solver.call(delegatedCalldata);
         vm.stopSnapshotGas();
 
@@ -354,7 +474,11 @@ contract Solver7702DelegateForkTest is BaseTest {
             rpcUrl = vm.envOr("MAINNET_RPC_URL", string(""));
         }
         vm.skip(bytes(rpcUrl).length == 0, string.concat("missing ", config.rpcEnv));
-        vm.createSelectFork(rpcUrl, config.forkBlock);
+        if (config.forkBlock == 0) {
+            vm.createSelectFork(rpcUrl);
+        } else {
+            vm.createSelectFork(rpcUrl, config.forkBlock);
+        }
 
         super.setUp();
         assertEq(address(IGPv2Settlement(config.settlement).authenticator()), config.authenticator);
@@ -418,78 +542,6 @@ contract Solver7702DelegateForkTest is BaseTest {
             authenticator: GPV2_AUTHENTICATOR,
             usdc: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
             weth: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
-        });
-    }
-
-    function _arbitrumNetworkConfig() internal pure returns (NetworkConfig memory config) {
-        config = NetworkConfig({
-            name: "arbitrum",
-            rpcEnv: "ARBITRUM_ONE_RPC_URL",
-            forkBlock: 463_053_000,
-            settlement: GPV2_SETTLEMENT,
-            authenticator: GPV2_AUTHENTICATOR,
-            usdc: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831,
-            weth: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1
-        });
-    }
-
-    function _baseNetworkConfig() internal pure returns (NetworkConfig memory config) {
-        config = NetworkConfig({
-            name: "base",
-            rpcEnv: "BASE_RPC_URL",
-            forkBlock: 46_025_000,
-            settlement: GPV2_SETTLEMENT,
-            authenticator: GPV2_AUTHENTICATOR,
-            usdc: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,
-            weth: 0x4200000000000000000000000000000000000006
-        });
-    }
-
-    function _bnbNetworkConfig() internal pure returns (NetworkConfig memory config) {
-        config = NetworkConfig({
-            name: "bnb",
-            rpcEnv: "BNB_MAINNET_RPC_URL",
-            forkBlock: 98_412_000,
-            settlement: GPV2_SETTLEMENT,
-            authenticator: GPV2_AUTHENTICATOR,
-            usdc: 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d,
-            weth: 0x2170Ed0880ac9A755fd29B2688956BD959F933F8
-        });
-    }
-
-    function _gnosisNetworkConfig() internal pure returns (NetworkConfig memory config) {
-        config = NetworkConfig({
-            name: "gnosis",
-            rpcEnv: "GNOSIS_RPC_URL",
-            forkBlock: 46_185_000,
-            settlement: GPV2_SETTLEMENT,
-            authenticator: GPV2_AUTHENTICATOR,
-            usdc: 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83,
-            weth: 0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1
-        });
-    }
-
-    function _optimismNetworkConfig() internal pure returns (NetworkConfig memory config) {
-        config = NetworkConfig({
-            name: "optimism",
-            rpcEnv: "OPTIMISM_RPC_URL",
-            forkBlock: 151_400_000,
-            settlement: GPV2_SETTLEMENT,
-            authenticator: GPV2_AUTHENTICATOR,
-            usdc: 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85,
-            weth: 0x4200000000000000000000000000000000000006
-        });
-    }
-
-    function _polygonNetworkConfig() internal pure returns (NetworkConfig memory config) {
-        config = NetworkConfig({
-            name: "polygon",
-            rpcEnv: "POLYGON_RPC_URL",
-            forkBlock: 86_914_000,
-            settlement: GPV2_SETTLEMENT,
-            authenticator: GPV2_AUTHENTICATOR,
-            usdc: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359,
-            weth: 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619
         });
     }
 }
