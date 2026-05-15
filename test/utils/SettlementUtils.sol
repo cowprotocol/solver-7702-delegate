@@ -2,23 +2,11 @@
 pragma solidity ^0.8.34;
 
 import {IGPv2Settlement} from "test/dependencies/settlement/IGPv2Settlement.sol";
-import {RawRevertTarget} from "test/mocks/targets/RawRevertTarget.sol";
 
 /// @notice Helpers for building mock and real GPv2 settlement calldata in tests.
 library SettlementUtils {
     /// @notice Selector for MockInteraction(uint256).
     bytes4 private constant MOCK_INTERACTION_SELECTOR = bytes4(keccak256("mockInteraction(uint256)"));
-
-    /// @notice Builds deterministic bytes with `words` 32-byte words.
-    function settlementPayload(uint256 words) internal pure returns (bytes memory payload) {
-        payload = new bytes(words * 32);
-        for (uint256 i; i < words; ++i) {
-            bytes32 word = keccak256(abi.encode(i));
-            assembly {
-                mstore(add(add(payload, 0x20), mul(i, 0x20)), word)
-            }
-        }
-    }
 
     /// @notice Builds calldata for a mock GPv2 settlement with the given shape.
     function gpv2SettlementCalldata(
@@ -28,38 +16,45 @@ library SettlementUtils {
         address recipient,
         address fallbackTarget
     ) internal pure returns (bytes memory payload, bytes32 payloadHash) {
-        (
-            address[] memory tokens,
-            uint256[] memory clearingPrices,
-            IGPv2Settlement.Trade[] memory trades,
-            IGPv2Settlement.Interaction[][3] memory interactions
-        ) = gpv2SettlementData(tokenCount, tradeCount, interactionCount, recipient, fallbackTarget, address(0), "");
-
-        payload = abi.encodeCall(IGPv2Settlement.settle, (tokens, clearingPrices, trades, interactions));
-        payloadHash = keccak256(abi.encode(tokens, clearingPrices, trades, interactions));
+        return gpv2SettlementCalldata(
+            tokenCount, tradeCount, [interactionCount, uint256(0), uint256(0)], recipient, fallbackTarget
+        );
     }
 
-    /// @notice Builds calldata for a mock GPv2 settlement with optional reverting interaction data.
+    /// @notice Builds calldata for a mock GPv2 settlement with interactions split by phase.
     function gpv2SettlementCalldata(
         uint256 tokenCount,
         uint256 tradeCount,
-        uint256 interactionCount,
+        uint256[3] memory interactionCounts,
         address recipient,
-        address fallbackTarget,
-        address rawRevertTarget,
-        bytes memory revertData
+        address fallbackTarget
     ) internal pure returns (bytes memory payload, bytes32 payloadHash) {
         (
             address[] memory tokens,
             uint256[] memory clearingPrices,
             IGPv2Settlement.Trade[] memory trades,
             IGPv2Settlement.Interaction[][3] memory interactions
-        ) = gpv2SettlementData(
-            tokenCount, tradeCount, interactionCount, recipient, fallbackTarget, rawRevertTarget, revertData
-        );
+        ) = gpv2SettlementData(tokenCount, tradeCount, interactionCounts, recipient, fallbackTarget);
 
         payload = abi.encodeCall(IGPv2Settlement.settle, (tokens, clearingPrices, trades, interactions));
         payloadHash = keccak256(abi.encode(tokens, clearingPrices, trades, interactions));
+    }
+
+    /// @notice Builds malformed calldata with one fewer clearing price than token.
+    function gpv2SettlementCalldataWithMissingClearingPrice(
+        uint256 tokenCount,
+        uint256 tradeCount,
+        address recipient,
+        address fallbackTarget
+    ) internal pure returns (bytes memory payload) {
+        uint256 clearingPriceCount = tokenCount == 0 ? 0 : tokenCount - 1;
+        (address[] memory tokens,) = gpv2Tokens(tokenCount);
+        (, uint256[] memory clearingPrices) = gpv2Tokens(clearingPriceCount);
+        IGPv2Settlement.Trade[] memory trades = gpv2Trades(tradeCount, tokenCount, recipient);
+        IGPv2Settlement.Interaction[][3] memory interactions =
+            gpv2Interactions([uint256(0), uint256(0), uint256(0)], fallbackTarget);
+
+        payload = abi.encodeCall(IGPv2Settlement.settle, (tokens, clearingPrices, trades, interactions));
     }
 
     /// @notice Builds fork-test calldata for the real GPv2 settlement contract.
@@ -90,11 +85,9 @@ library SettlementUtils {
     function gpv2SettlementData(
         uint256 tokenCount,
         uint256 tradeCount,
-        uint256 interactionCount,
+        uint256[3] memory interactionCounts,
         address recipient,
-        address fallbackTarget,
-        address rawRevertTarget,
-        bytes memory revertData
+        address fallbackTarget
     )
         private
         pure
@@ -107,7 +100,7 @@ library SettlementUtils {
     {
         (tokens, clearingPrices) = gpv2Tokens(tokenCount);
         trades = gpv2Trades(tradeCount, tokenCount, recipient);
-        interactions = gpv2Interactions(interactionCount, fallbackTarget, rawRevertTarget, revertData);
+        interactions = gpv2Interactions(interactionCounts, fallbackTarget);
     }
 
     /// @notice Builds deterministic mock token addresses and clearing prices.
@@ -149,36 +142,29 @@ library SettlementUtils {
     }
 
     /// @notice Builds the pre, intra, and post settlement interaction lists.
-    function gpv2Interactions(
-        uint256 interactionCount,
-        address fallbackTarget,
-        address rawRevertTarget,
-        bytes memory revertData
-    ) private pure returns (IGPv2Settlement.Interaction[][3] memory interactions) {
-        interactions[0] = new IGPv2Settlement.Interaction[](interactionCount);
-        interactions[1] = new IGPv2Settlement.Interaction[](0);
-        interactions[2] = new IGPv2Settlement.Interaction[](0);
-
-        for (uint256 i; i < interactionCount; ++i) {
-            interactions[0][i] = gpv2Interaction(i, fallbackTarget, rawRevertTarget, revertData);
+    function gpv2Interactions(uint256[3] memory interactionCounts, address fallbackTarget)
+        private
+        pure
+        returns (IGPv2Settlement.Interaction[][3] memory interactions)
+    {
+        uint256 interactionIndex;
+        for (uint256 phase; phase < interactions.length; ++phase) {
+            interactions[phase] = new IGPv2Settlement.Interaction[](interactionCounts[phase]);
+            for (uint256 i; i < interactionCounts[phase]; ++i) {
+                interactions[phase][i] = gpv2Interaction(interactionIndex, fallbackTarget);
+                ++interactionIndex;
+            }
         }
     }
 
     /// @notice Builds one mock GPv2 interaction.
-    function gpv2Interaction(uint256 index, address fallbackTarget, address rawRevertTarget, bytes memory revertData)
+    function gpv2Interaction(uint256 index, address fallbackTarget)
         private
         pure
         returns (IGPv2Settlement.Interaction memory interaction)
     {
-        bytes memory callData;
-        address target = fallbackTarget;
-        if (index == 0 && revertData.length != 0) {
-            target = rawRevertTarget;
-            callData = abi.encodeCall(RawRevertTarget.revertRaw, (revertData));
-        } else {
-            callData = abi.encodeWithSelector(MOCK_INTERACTION_SELECTOR, index);
-        }
-
-        interaction = IGPv2Settlement.Interaction({target: target, value: 0, callData: callData});
+        interaction = IGPv2Settlement.Interaction({
+            target: fallbackTarget, value: 0, callData: abi.encodeWithSelector(MOCK_INTERACTION_SELECTOR, index)
+        });
     }
 }

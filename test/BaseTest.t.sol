@@ -35,6 +35,10 @@ abstract contract BaseTest is Test {
 
     /// @notice Shared solver address.
     address internal solver;
+    /// @notice Shared recipient address.
+    address internal recipient;
+    /// @notice Shared unauthorized caller address.
+    address internal unauthorizedCaller;
     /// @notice Shared approved callers.
     ApprovedCallers internal approvedCallers;
     /// @notice Shared delegate contract.
@@ -43,6 +47,8 @@ abstract contract BaseTest is Test {
     /// @notice Creates the default solver, approved callers, and delegate contract.
     function setUp() public virtual {
         solver = vm.addr(SOLVER_PRIVATE_KEY);
+        recipient = makeAddr("RECIPIENT");
+        unauthorizedCaller = makeAddr("UNAUTHORIZED_CALLER");
         approvedCallers = ApprovedCallers({
             first: makeAddr("APPROVED_CALLER_0"),
             second: makeAddr("APPROVED_CALLER_1"),
