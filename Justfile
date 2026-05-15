@@ -59,8 +59,8 @@ slither:
     PATH="$PWD/{{NPM_BIN}}:$PATH" uv run --project dev slither src --config-file slither.config.json
 
 # Run tests
-test:
-    {{FORGE}} test -vvv --show-progress
+test *args:
+    {{FORGE}} test -vvv --show-progress {{args}}
 
 # Print coverage summary
 coverage-summary:
