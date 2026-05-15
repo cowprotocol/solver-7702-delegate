@@ -1,9 +1,9 @@
 {
   "delegated submission - reverts - UnauthorizedCaller": "460",
-  "delegated submission - success - interactions across phases": "44776",
-  "delegated submission - success - large settlement with interactions": "114722",
-  "delegated submission - success - small settlement": "24184",
-  "direct submission - success - interactions across phases": "157450",
-  "direct submission - success - large settlement with interactions": "224869",
-  "direct submission - success - small settlement": "117371"
+  "delegated submission - success - interactions across phases": "44663",
+  "delegated submission - success - large settlement with interactions": "114609",
+  "delegated submission - success - small settlement": "24071",
+  "direct submission - success - interactions across phases": "155237",
+  "direct submission - success - large settlement with interactions": "222656",
+  "direct submission - success - small settlement": "115158"
 }

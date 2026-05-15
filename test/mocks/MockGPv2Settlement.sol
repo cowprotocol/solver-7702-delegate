@@ -16,7 +16,6 @@ contract MockGPv2Settlement is IGPv2Settlement {
     address public immutable VAULT_RELAYER;
 
     address public lastSender;
-    uint256 public lastValue;
     bytes32 public lastPayloadHash;
     uint256 public lastTokenCount;
     uint256 public lastTradeCount;
@@ -27,7 +26,7 @@ contract MockGPv2Settlement is IGPv2Settlement {
         VAULT_RELAYER = vaultRelayer_;
     }
 
-    /// @notice Accepts ETH so value-forwarding tests can use this mock as a payable target.
+    /// @notice Allows tests to fund this mock before settlement interactions forward ETH.
     receive() external payable {}
 
     /// @notice Records a settlement submission from an allowlisted solver.
@@ -61,7 +60,6 @@ contract MockGPv2Settlement is IGPv2Settlement {
         }
 
         lastSender = msg.sender;
-        lastValue = 0;
         lastPayloadHash = keccak256(abi.encode(tokens, clearingPrices, trades, interactions));
         lastTokenCount = tokens.length;
         lastTradeCount = trades.length;

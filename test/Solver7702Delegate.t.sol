@@ -192,19 +192,24 @@ contract Solver7702DelegateTest is BaseTest {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         address[5] memory callers = _approvedCallers();
         address caller = callers[uint256(callerIndex) % callers.length];
-        bytes memory forwardedPayload = payload.length == 0 ? abi.encodePacked(bytes1(0)) : payload;
         uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
         vm.deal(caller, value);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(caller);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call{value: value}(_packedCalldata(address(fallbackTarget), forwardedPayload));
+            address(delegateContract).call{value: value}(_packedCalldata(address(fallbackTarget), payload));
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertTrue(success, "fuzzed approved caller should forward payload");
+        if (payload.length == 0) {
+            assertEq(returnData.length, 0, "empty payload should return no data");
+            assertEq(address(fallbackTarget).balance, fallbackTargetBalanceBefore + value, "target should receive ETH");
+            assertEq(_fallbackCallCount(), 1, "receive should be called once");
+            return;
+        }
         _assertFallbackReturn(
-            returnData, address(delegateContract), value, forwardedPayload, fallbackTargetBalanceBefore + value
+            returnData, address(delegateContract), value, payload, fallbackTargetBalanceBefore + value
         );
         assertEq(_fallbackCallCount(), 1, "fallback target should be called once");
     }
@@ -395,20 +400,6 @@ contract Solver7702DelegateTest is BaseTest {
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertFalse(success, "fuzzed target revert should bubble failure");
         assertEq(returnData, expectedRevertData, "fuzzed revert data should match target revert");
-    }
-
-    function test_fuzz_fallback_revertsWith_ExternalCallReverts(bytes memory expectedRevertData) public {
-        // ~~~~~~~~~~ Setup ~~~~~~~~~~
-        bytes memory payload = abi.encodeCall(RawRevertTarget.revertRaw, (expectedRevertData));
-
-        // ~~~~~~~~~~ Call ~~~~~~~~~~
-        vm.prank(approvedCallers.first);
-        (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(rawRevertTarget), payload));
-
-        // ~~~~~~~~~~ Assertions ~~~~~~~~~~
-        assertFalse(success, "external call revert should bubble failure");
-        assertEq(returnData, expectedRevertData, "external revert data should match target revert");
     }
 
     function test_unit_fallback_revertsWith_EmptyRevertData() public {
