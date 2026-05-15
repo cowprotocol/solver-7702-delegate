@@ -60,7 +60,7 @@ slither:
 
 # Run tests
 test:
-    {{FORGE}} test -vvv --show-progress --gas-snapshot-check true
+    {{FORGE}} test -vvv --show-progress
 
 # Print coverage summary
 coverage-summary:

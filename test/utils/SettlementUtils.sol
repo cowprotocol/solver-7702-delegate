@@ -57,17 +57,21 @@ library SettlementUtils {
         payload = abi.encodeCall(IGPv2Settlement.settle, (tokens, clearingPrices, trades, interactions));
     }
 
-    /// @notice Builds fork-test calldata for the real GPv2 settlement contract.
-    function realGPv2SettleCalldata(uint256 tokenCount, address forbiddenTarget) internal pure returns (bytes memory) {
-        address[] memory tokens = new address[](tokenCount);
-        uint256[] memory clearingPrices = new uint256[](tokenCount);
+    /// @notice Builds fork-test calldata for the real GPv2 settlement contract using the configured token pair.
+    function realGPv2SettleCalldata(address usdc, address weth, address forbiddenTarget)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        address[] memory tokens = new address[](2);
+        uint256[] memory clearingPrices = new uint256[](2);
         IGPv2Settlement.Trade[] memory trades = new IGPv2Settlement.Trade[](0);
         IGPv2Settlement.Interaction[][3] memory interactions;
 
-        for (uint256 i; i < tokenCount; ++i) {
-            tokens[i] = address(uint160(uint256(keccak256(abi.encode("fork token", i)))));
-            clearingPrices[i] = 1 ether + i;
-        }
+        tokens[0] = usdc;
+        tokens[1] = weth;
+        clearingPrices[0] = 1 ether;
+        clearingPrices[1] = 1 ether;
 
         if (forbiddenTarget == address(0)) {
             interactions[0] = new IGPv2Settlement.Interaction[](0);
@@ -75,6 +79,43 @@ library SettlementUtils {
             interactions[0] = new IGPv2Settlement.Interaction[](1);
             interactions[0][0] = IGPv2Settlement.Interaction({target: forbiddenTarget, value: 0, callData: ""});
         }
+        interactions[1] = new IGPv2Settlement.Interaction[](0);
+        interactions[2] = new IGPv2Settlement.Interaction[](0);
+
+        return abi.encodeCall(IGPv2Settlement.settle, (tokens, clearingPrices, trades, interactions));
+    }
+
+    /// @notice Builds fork-test calldata for a simple WETH -> USDC trade attempt on the real GPv2 settlement.
+    function realGPv2WethForUsdcOrderCalldata(address usdc, address weth, address owner)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        address[] memory tokens = new address[](2);
+        uint256[] memory clearingPrices = new uint256[](2);
+        IGPv2Settlement.Trade[] memory trades = new IGPv2Settlement.Trade[](1);
+        IGPv2Settlement.Interaction[][3] memory interactions;
+
+        tokens[0] = weth;
+        tokens[1] = usdc;
+        clearingPrices[0] = 1 ether;
+        clearingPrices[1] = 3000 * 1 ether;
+
+        trades[0] = IGPv2Settlement.Trade({
+            sellTokenIndex: 0,
+            buyTokenIndex: 1,
+            receiver: owner,
+            sellAmount: 1 ether,
+            buyAmount: 3000e6,
+            validTo: 4_102_444_800,
+            appData: bytes32(0),
+            feeAmount: 0,
+            flags: 0,
+            executedAmount: 1 ether,
+            signature: abi.encodePacked(owner)
+        });
+
+        interactions[0] = new IGPv2Settlement.Interaction[](0);
         interactions[1] = new IGPv2Settlement.Interaction[](0);
         interactions[2] = new IGPv2Settlement.Interaction[](0);
 

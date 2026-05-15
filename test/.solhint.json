@@ -1,6 +1,8 @@
 {
   "rules": {
     "func-name-mixedcase": "off",
+    "gas-strict-inequalities": "off",
+    "no-empty-blocks": "off",
     "use-natspec": "off"
   }
 }
