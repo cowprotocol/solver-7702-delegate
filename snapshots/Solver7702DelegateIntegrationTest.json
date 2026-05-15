@@ -1,10 +1,9 @@
 {
-  "GPv2Settlement 7702 delegation - success - large settlement with 6 interactions": "240203",
-  "GPv2Settlement 7702 delegation - success - small settlement": "121591",
-  "GPv2Settlement direct call - success - large settlement with 6 interactions": "246867",
-  "GPv2Settlement direct call - success - small settlement": "108210",
-  "simple 7702 delegation - reverts - unauthorized caller": "460",
-  "simple 7702 delegation - success - large mock settlement payload": "96271",
-  "simple 7702 delegation - success - mock settlement forwards ETH": "118832",
-  "simple 7702 delegation - success - small mock settlement payload": "95120"
+  "delegated submission - reverts - UnauthorizedCaller": "460",
+  "delegated submission - success - interactions across phases": "44776",
+  "delegated submission - success - large settlement with interactions": "114722",
+  "delegated submission - success - small settlement": "24184",
+  "direct submission - success - interactions across phases": "157450",
+  "direct submission - success - large settlement with interactions": "224869",
+  "direct submission - success - small settlement": "117371"
 }
