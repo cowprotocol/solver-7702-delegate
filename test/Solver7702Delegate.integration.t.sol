@@ -11,9 +11,8 @@ import {BaseTest} from "test/BaseTest.t.sol";
 import {MockGPv2Authenticator} from "test/mocks/MockGPv2Authenticator.sol";
 import {MockGPv2Settlement} from "test/mocks/MockGPv2Settlement.sol";
 import {MockSettlement} from "test/mocks/MockSettlement.sol";
-import {FallbackTarget} from "test/mocks/targets/FallbackTarget.sol";
+import {PayableFallbackTarget} from "test/mocks/targets/PayableFallbackTarget.sol";
 import {RawRevertTarget} from "test/mocks/targets/RawRevertTarget.sol";
-import {MathUtils} from "test/utils/MathUtils.sol";
 import {SettlementUtils} from "test/utils/SettlementUtils.sol";
 
 contract Solver7702DelegateIntegrationTest is BaseTest {
@@ -36,7 +35,7 @@ contract Solver7702DelegateIntegrationTest is BaseTest {
     MockGPv2Authenticator internal authenticator;
     MockGPv2Settlement internal gpv2Settlement;
     ERC20Mock internal token;
-    FallbackTarget internal fallbackTarget;
+    PayableFallbackTarget internal fallbackTarget;
     RawRevertTarget internal rawRevertTarget;
 
     address internal recipient;
@@ -51,7 +50,7 @@ contract Solver7702DelegateIntegrationTest is BaseTest {
         authenticator.addSolver(solver);
         gpv2Settlement = new MockGPv2Settlement(authenticator, makeAddr("VAULT_RELAYER"));
         token = new ERC20Mock();
-        fallbackTarget = new FallbackTarget();
+        fallbackTarget = new PayableFallbackTarget();
         rawRevertTarget = new RawRevertTarget();
         recipient = makeAddr("RECIPIENT");
         spender = makeAddr("SPENDER");
@@ -286,8 +285,7 @@ contract Solver7702DelegateIntegrationTest is BaseTest {
             recipient,
             address(fallbackTarget)
         );
-        uint256 directGas =
-            _snapshotDirectSettlementGas(payload, "GPv2Settlement direct call - success - small settlement");
+        _snapshotDirectSettlementGas(payload, "GPv2Settlement direct call - success - small settlement");
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
@@ -295,10 +293,6 @@ contract Solver7702DelegateIntegrationTest is BaseTest {
         (bool success, bytes memory returnData) = solver.call(_packedCalldata(address(gpv2Settlement), payload));
         uint256 delegatedGas = gasBefore - gasleft();
         vm.snapshotValue("GPv2Settlement 7702 delegation - success - small settlement", delegatedGas);
-        vm.snapshotValue(
-            "GPv2Settlement 7702 overhead - success - small settlement",
-            MathUtils.nonNegativeDelta(delegatedGas, directGas)
-        );
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertTrue(success);
@@ -318,7 +312,7 @@ contract Solver7702DelegateIntegrationTest is BaseTest {
             recipient,
             address(fallbackTarget)
         );
-        uint256 directGas = _snapshotDirectSettlementGas(
+        _snapshotDirectSettlementGas(
             payload, "GPv2Settlement direct call - success - large settlement with 6 interactions"
         );
 
@@ -329,10 +323,6 @@ contract Solver7702DelegateIntegrationTest is BaseTest {
         uint256 delegatedGas = gasBefore - gasleft();
         vm.snapshotValue(
             "GPv2Settlement 7702 delegation - success - large settlement with 6 interactions", delegatedGas
-        );
-        vm.snapshotValue(
-            "GPv2Settlement 7702 overhead - success - large settlement with 6 interactions",
-            MathUtils.nonNegativeDelta(delegatedGas, directGas)
         );
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~

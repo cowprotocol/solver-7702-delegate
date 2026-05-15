@@ -6,6 +6,9 @@ import {RawRevertTarget} from "test/mocks/targets/RawRevertTarget.sol";
 
 /// @notice Helpers for building mock and real GPv2 settlement calldata in tests.
 library SettlementUtils {
+    /// @notice Selector for MockInteraction(uint256).
+    bytes4 private constant MOCK_INTERACTION_SELECTOR = bytes4(keccak256("mockInteraction(uint256)"));
+
     /// @notice Builds deterministic bytes with `words` 32-byte words.
     function settlementPayload(uint256 words) internal pure returns (bytes memory payload) {
         payload = new bytes(words * 32);
@@ -173,13 +176,9 @@ library SettlementUtils {
             target = rawRevertTarget;
             callData = abi.encodeCall(RawRevertTarget.revertRaw, (revertData));
         } else {
-            callData = abi.encodeWithSelector(IMockInteractionTarget.mockInteraction.selector, index);
+            callData = abi.encodeWithSelector(MOCK_INTERACTION_SELECTOR, index);
         }
 
         interaction = IGPv2Settlement.Interaction({target: target, value: 0, callData: callData});
     }
-}
-
-interface IMockInteractionTarget {
-    function mockInteraction(uint256 index) external;
 }

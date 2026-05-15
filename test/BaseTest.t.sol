@@ -33,10 +33,12 @@ abstract contract BaseTest is Test {
     /// @notice Selector for RawRevert(uint256,string).
     bytes4 internal constant RAW_REVERT_SELECTOR = bytes4(keccak256("RawRevert(uint256,string)"));
 
-    Solver7702Delegate internal delegateContract;
-
+    /// @notice Shared solver address.
     address internal solver;
+    /// @notice Shared approved callers.
     ApprovedCallers internal approvedCallers;
+    /// @notice Shared delegate contract.
+    Solver7702Delegate internal delegateContract;
 
     /// @notice Creates the default solver, approved callers, and delegate contract.
     function setUp() public virtual {
@@ -70,7 +72,7 @@ abstract contract BaseTest is Test {
         vm.signAndAttachDelegation(address(delegateContract), solverPrivateKey);
     }
 
-    /// @notice Decodes and checks the return data from FallbackTarget.
+    /// @notice Decodes and checks the return data from PayableFallbackTarget.
     function _assertFallbackReturn(
         bytes memory returnData,
         address expectedSender,

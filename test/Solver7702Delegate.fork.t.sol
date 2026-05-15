@@ -10,7 +10,7 @@ import {BaseTest} from "test/BaseTest.t.sol";
 import {IGPv2Authenticator} from "test/dependencies/settlement/IGPv2Authenticator.sol";
 import {IGPv2Settlement} from "test/dependencies/settlement/IGPv2Settlement.sol";
 import {MockSettlement} from "test/mocks/MockSettlement.sol";
-import {FallbackTarget} from "test/mocks/targets/FallbackTarget.sol";
+import {PayableFallbackTarget} from "test/mocks/targets/PayableFallbackTarget.sol";
 import {SettlementUtils} from "test/utils/SettlementUtils.sol";
 
 contract Solver7702DelegateForkTest is BaseTest {
@@ -64,7 +64,7 @@ contract Solver7702DelegateForkTest is BaseTest {
 
     function test_fork_7702Submission_success_sendsEthToPayableTarget() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
-        FallbackTarget target = new FallbackTarget();
+        PayableFallbackTarget target = new PayableFallbackTarget();
         bytes memory payload = hex"abcdef";
         uint256 targetBalanceBefore = address(target).balance;
         vm.deal(approvedCallers.first, MSG_VALUE);
