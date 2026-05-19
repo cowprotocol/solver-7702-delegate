@@ -74,6 +74,6 @@ jobs:
           submodules: recursive
       - uses: ./.github/actions/setup
       - name: Test
-        run: just test
+        run: forge test -vvv --show-progress --gas-snapshot-check true
       - name: Coverage
         run: just coverage-check
