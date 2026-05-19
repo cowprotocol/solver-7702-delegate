@@ -5,7 +5,6 @@ pragma solidity ^0.8.34;
 import {BaseTest} from "test/BaseTest.t.sol";
 import {IGPv2Authenticator} from "test/dependencies/settlement/IGPv2Authenticator.sol";
 import {IGPv2Settlement} from "test/dependencies/settlement/IGPv2Settlement.sol";
-import {SettlementUtils} from "test/utils/SettlementUtils.sol";
 
 contract Solver7702DelegateForkTest is BaseTest {
     address internal constant GPV2_SETTLEMENT = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
@@ -205,7 +204,7 @@ contract Solver7702DelegateForkTest is BaseTest {
         authenticator.removeSolver(solver);
         assertFalse(authenticator.isSolver(solver));
 
-        bytes memory payload = SettlementUtils.realGPv2SettleCalldata(config.usdc, config.weth, address(0));
+        bytes memory payload = _realGPv2SettleCalldata(config.usdc, config.weth, address(0));
         bytes memory expectedRevertData = abi.encodeWithSignature("Error(string)", "GPv2: not a solver");
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
@@ -223,7 +222,7 @@ contract Solver7702DelegateForkTest is BaseTest {
         _selectForkAndSetUp(config);
 
         address vaultRelayer = IGPv2Settlement(config.settlement).vaultRelayer();
-        bytes memory payload = SettlementUtils.realGPv2SettleCalldata(config.usdc, config.weth, vaultRelayer);
+        bytes memory payload = _realGPv2SettleCalldata(config.usdc, config.weth, vaultRelayer);
         bytes memory expectedRevertData = abi.encodeWithSignature("Error(string)", "GPv2: forbidden interaction");
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
@@ -335,7 +334,7 @@ contract Solver7702DelegateForkTest is BaseTest {
     function _attemptSimpleWethForUsdcOrder(NetworkConfig memory config) internal {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         _selectForkAndSetUp(config);
-        bytes memory payload = SettlementUtils.realGPv2WethForUsdcOrderCalldata(config.usdc, config.weth, solver);
+        bytes memory payload = _realGPv2WethForUsdcOrderCalldata(config.usdc, config.weth, solver);
         bytes memory delegatedCalldata = _packedCalldata(config.settlement, payload);
         _assertPayloadSelector(payload, IGPv2Settlement.settle.selector);
 
@@ -410,6 +409,69 @@ contract Solver7702DelegateForkTest is BaseTest {
         // casting to bytes4 is safe because the length is checked just above.
         // forge-lint: disable-next-line(unsafe-typecast)
         assertEq(bytes4(payload), expectedSelector, "calldata selector mismatch");
+    }
+
+    function _realGPv2SettleCalldata(address usdc, address weth, address forbiddenTarget)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        address[] memory tokens = new address[](2);
+        uint256[] memory clearingPrices = new uint256[](2);
+        IGPv2Settlement.Trade[] memory trades = new IGPv2Settlement.Trade[](0);
+        IGPv2Settlement.Interaction[][3] memory interactions;
+
+        tokens[0] = usdc;
+        tokens[1] = weth;
+        clearingPrices[0] = 1 ether;
+        clearingPrices[1] = 1 ether;
+
+        if (forbiddenTarget == address(0)) {
+            interactions[0] = new IGPv2Settlement.Interaction[](0);
+        } else {
+            interactions[0] = new IGPv2Settlement.Interaction[](1);
+            interactions[0][0] = IGPv2Settlement.Interaction({target: forbiddenTarget, value: 0, callData: ""});
+        }
+        interactions[1] = new IGPv2Settlement.Interaction[](0);
+        interactions[2] = new IGPv2Settlement.Interaction[](0);
+
+        return abi.encodeCall(IGPv2Settlement.settle, (tokens, clearingPrices, trades, interactions));
+    }
+
+    function _realGPv2WethForUsdcOrderCalldata(address usdc, address weth, address owner)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        address[] memory tokens = new address[](2);
+        uint256[] memory clearingPrices = new uint256[](2);
+        IGPv2Settlement.Trade[] memory trades = new IGPv2Settlement.Trade[](1);
+        IGPv2Settlement.Interaction[][3] memory interactions;
+
+        tokens[0] = weth;
+        tokens[1] = usdc;
+        clearingPrices[0] = 1 ether;
+        clearingPrices[1] = 3000 * 1 ether;
+
+        trades[0] = IGPv2Settlement.Trade({
+            sellTokenIndex: 0,
+            buyTokenIndex: 1,
+            receiver: owner,
+            sellAmount: 1 ether,
+            buyAmount: 3000e6,
+            validTo: 4_102_444_800,
+            appData: bytes32(0),
+            feeAmount: 0,
+            flags: 0,
+            executedAmount: 1 ether,
+            signature: abi.encodePacked(owner)
+        });
+
+        interactions[0] = new IGPv2Settlement.Interaction[](0);
+        interactions[1] = new IGPv2Settlement.Interaction[](0);
+        interactions[2] = new IGPv2Settlement.Interaction[](0);
+
+        return abi.encodeCall(IGPv2Settlement.settle, (tokens, clearingPrices, trades, interactions));
     }
 
     function _historicalSettlementCalldata(NetworkConfig memory config, bytes32 txHash)

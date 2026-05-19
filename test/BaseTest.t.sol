@@ -26,17 +26,11 @@ abstract contract BaseTest is Test {
     uint256 internal constant MSG_VALUE = 1 ether;
     /// @notice Number of bytes used to encode the packed target address.
     uint256 internal constant PACKED_TARGET_LENGTH = 20;
-    /// @notice Shared token and mock settlement amount.
-    uint256 internal constant TEST_AMOUNT = 100 ether;
-    /// @notice Shared order UID used by mock settlement tests.
-    bytes32 internal constant TEST_ORDER_UID = keccak256("TEST_ORDER_UID");
     /// @notice Selector for RawRevert(uint256,string).
     bytes4 internal constant RAW_REVERT_SELECTOR = bytes4(keccak256("RawRevert(uint256,string)"));
 
     /// @notice Shared solver address.
     address internal solver;
-    /// @notice Shared recipient address.
-    address internal recipient;
     /// @notice Shared unauthorized caller address.
     address internal unauthorizedCaller;
     /// @notice Shared approved callers.
@@ -47,7 +41,6 @@ abstract contract BaseTest is Test {
     /// @notice Creates the default solver, approved callers, and delegate contract.
     function setUp() public virtual {
         solver = vm.addr(SOLVER_PRIVATE_KEY);
-        recipient = makeAddr("RECIPIENT");
         unauthorizedCaller = makeAddr("UNAUTHORIZED_CALLER");
         approvedCallers = ApprovedCallers({
             first: makeAddr("APPROVED_CALLER_0"),
@@ -76,22 +69,5 @@ abstract contract BaseTest is Test {
     /// @notice Attaches the delegate code to the solver EOA.
     function _attachDelegation(uint256 solverPrivateKey) internal {
         vm.signAndAttachDelegation(address(delegateContract), solverPrivateKey);
-    }
-
-    /// @notice Decodes and checks the return data from PayableFallbackTarget.
-    function _assertFallbackReturn(
-        bytes memory returnData,
-        address expectedSender,
-        uint256 expectedValue,
-        bytes memory expectedPayload,
-        uint256 expectedBalance
-    ) internal pure {
-        (address sender, uint256 value, bytes memory payload, uint256 balance) =
-            abi.decode(returnData, (address, uint256, bytes, uint256));
-
-        assertEq(sender, expectedSender);
-        assertEq(value, expectedValue);
-        assertEq(payload, expectedPayload);
-        assertEq(balance, expectedBalance);
     }
 }

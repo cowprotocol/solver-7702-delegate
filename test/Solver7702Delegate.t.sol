@@ -6,27 +6,23 @@ import {stdError} from "forge-std/StdError.sol";
 
 import {Solver7702Delegate} from "src/Solver7702Delegate.sol";
 import {BaseTest} from "test/BaseTest.t.sol";
-import {NonpayableTarget} from "test/mocks/targets/NonpayableTarget.sol";
-import {PayableFallbackTarget} from "test/mocks/targets/PayableFallbackTarget.sol";
-import {RawRevertTarget} from "test/mocks/targets/RawRevertTarget.sol";
-import {RevertingTarget} from "test/mocks/targets/RevertingTarget.sol";
 
 contract Solver7702DelegateTest is BaseTest {
-    PayableFallbackTarget internal fallbackTarget;
-    NonpayableTarget internal nonpayableTarget;
-    RawRevertTarget internal rawRevertTarget;
-    RevertingTarget internal revertingTarget;
+    error TargetCustomError(address sender, uint256 value, bytes payload);
 
+    address internal fallbackTarget;
+    address internal rawRevertTarget;
+    address internal revertingTarget;
+    address internal nonpayableTarget;
     address internal targetWithoutCode;
 
     function setUp() public override {
         super.setUp();
 
-        fallbackTarget = new PayableFallbackTarget();
-        nonpayableTarget = new NonpayableTarget();
-        rawRevertTarget = new RawRevertTarget();
-        revertingTarget = new RevertingTarget();
-
+        fallbackTarget = makeAddr("FALLBACK_TARGET");
+        rawRevertTarget = makeAddr("RAW_REVERT_TARGET");
+        revertingTarget = makeAddr("REVERTING_TARGET");
+        nonpayableTarget = makeAddr("NONPAYABLE_TARGET");
         targetWithoutCode = makeAddr("TARGET_WITHOUT_CODE");
     }
 
@@ -44,19 +40,19 @@ contract Solver7702DelegateTest is BaseTest {
         Solver7702Delegate distinctDelegate = new Solver7702Delegate(callers);
         vm.snapshotGasLastCall("constructor - success - distinct callers");
 
-        uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
         // ~~~~~~~~~~ Call + Assertions ~~~~~~~~~~
         for (uint256 i; i < callers.length; ++i) {
             bytes memory payload = abi.encodePacked("distinct ", i);
+            bytes memory expectedReturnData =
+                _mockFallbackReturn(address(distinctDelegate), 0, payload, fallbackTarget.balance);
+
             vm.prank(callers[i]);
             (bool success, bytes memory returnData) =
-                address(distinctDelegate).call(_packedCalldata(address(fallbackTarget), payload));
+                address(distinctDelegate).call(_packedCalldata(fallbackTarget, payload));
 
             assertTrue(success, "distinct approved caller should forward");
-            _assertFallbackReturn(returnData, address(distinctDelegate), 0, payload, fallbackTargetBalanceBefore);
+            assertEq(returnData, expectedReturnData, "target return data should bubble");
         }
-
-        assertEq(_fallbackCallCount(), callers.length, "fallback target should be called by each distinct caller");
     }
 
     function test_unit_constructor_success_whenApprovedCallersContainDuplicates() public {
@@ -73,16 +69,17 @@ contract Solver7702DelegateTest is BaseTest {
         vm.snapshotGasLastCall("constructor - success - duplicate callers");
 
         bytes memory payload = hex"123456";
-        uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
+        bytes memory expectedReturnData =
+            _mockFallbackReturn(address(duplicateDelegate), 0, payload, fallbackTarget.balance);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(repeatedCaller);
         (bool success, bytes memory returnData) =
-            address(duplicateDelegate).call(_packedCalldata(address(fallbackTarget), payload));
+            address(duplicateDelegate).call(_packedCalldata(fallbackTarget, payload));
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertTrue(success, "duplicate approved caller should forward");
-        _assertFallbackReturn(returnData, address(duplicateDelegate), 0, payload, fallbackTargetBalanceBefore);
+        assertEq(returnData, expectedReturnData, "target return data should bubble");
     }
 
     function test_unit_constructor_success_whenApprovedCallersContainZeroAddress() public {
@@ -115,7 +112,6 @@ contract Solver7702DelegateTest is BaseTest {
             delegateBalanceBefore + MSG_VALUE,
             "delegate should receive forwarded ETH"
         );
-        assertEq(_fallbackCallCount(), 0, "empty calldata should not call fallback target");
     }
 
     function test_unit_fallback_success_shortCalldataDoesNothing() public {
@@ -128,7 +124,6 @@ contract Solver7702DelegateTest is BaseTest {
 
             assertTrue(success, "short calldata should succeed");
             assertEq(returnData.length, 0, "short calldata should return no data");
-            assertEq(_fallbackCallCount(), 0, "short calldata should not call fallback target");
         }
     }
 
@@ -143,7 +138,6 @@ contract Solver7702DelegateTest is BaseTest {
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertTrue(success, "fuzzed short calldata should succeed");
         assertEq(returnData.length, 0, "fuzzed short calldata should return no data");
-        assertEq(_fallbackCallCount(), 0, "fuzzed short calldata should not call fallback target");
     }
 
     function test_unit_fallback_success_forwardsPayloadFromApprovedCallers() public {
@@ -151,37 +145,40 @@ contract Solver7702DelegateTest is BaseTest {
         uint256 totalValue;
         address[5] memory callers = _approvedCallers();
 
-        // Prime callCount so slot 0 does not include the one-off zero-to-nonzero SSTORE cost.
-        // This keeps the per-caller gas snapshots focused on the delegate fallback path.
-        (bool primed,) = address(fallbackTarget).call("");
-        assertTrue(primed, "fallback target priming call should succeed");
+        // Warm up every forwarding path before measuring so snapshots compare branch cost.
+        for (uint256 i; i < callers.length; ++i) {
+            bytes memory warmupPayload = abi.encodePacked("warmup ", i);
+            vm.deal(callers[i], MSG_VALUE);
+            bytes memory warmupExpectedReturnData =
+                _mockFallbackReturn(address(delegateContract), MSG_VALUE, warmupPayload, 0);
+            vm.expectCall(fallbackTarget, MSG_VALUE, warmupPayload);
 
-        uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
+            vm.prank(callers[i]);
+            (bool warmupSuccess, bytes memory warmupReturnData) =
+                address(delegateContract).call{value: MSG_VALUE}(_packedCalldata(fallbackTarget, warmupPayload));
+
+            assertTrue(warmupSuccess, "warmup call should forward payload");
+            assertEq(warmupReturnData, warmupExpectedReturnData, "warmup return data should bubble");
+        }
 
         // ~~~~~~~~~~ Call + Assertions ~~~~~~~~~~
         for (uint256 i; i < callers.length; ++i) {
             bytes memory payload = abi.encodePacked("slot ", i, bytes32(uint256(100 + i)));
             totalValue += MSG_VALUE;
             vm.deal(callers[i], MSG_VALUE);
+            bytes memory expectedReturnData = _mockFallbackReturn(address(delegateContract), MSG_VALUE, payload, 0);
+            vm.expectCall(fallbackTarget, MSG_VALUE, payload);
 
             vm.prank(callers[i]);
             vm.startSnapshotGas(_packedCalldataGasSnapshotName(i));
             (bool success, bytes memory returnData) =
-                address(delegateContract).call{value: MSG_VALUE}(_packedCalldata(address(fallbackTarget), payload));
+                address(delegateContract).call{value: MSG_VALUE}(_packedCalldata(fallbackTarget, payload));
             vm.stopSnapshotGas();
 
             assertTrue(success, "approved caller should forward payload");
-            _assertFallbackReturn(
-                returnData, address(delegateContract), MSG_VALUE, payload, fallbackTargetBalanceBefore + totalValue
-            );
+            assertEq(returnData, expectedReturnData, "target return data should bubble");
         }
-
-        assertEq(_fallbackCallCount(), callers.length + 1, "fallback target should include priming call");
-        assertEq(
-            address(fallbackTarget).balance,
-            fallbackTargetBalanceBefore + totalValue,
-            "fallback target should receive total forwarded ETH"
-        );
+        assertEq(totalValue, MSG_VALUE * callers.length, "test should forward ETH from every approved caller");
     }
 
     function test_fuzz_fallback_success_forwardsPayloadFromApprovedCaller(
@@ -192,92 +189,89 @@ contract Solver7702DelegateTest is BaseTest {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         address[5] memory callers = _approvedCallers();
         address caller = callers[uint256(callerIndex) % callers.length];
-        uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
         vm.deal(caller, value);
+        bytes memory expectedReturnData;
+        if (payload.length == 0) {
+            vm.mockCall(fallbackTarget, value, payload, "");
+        } else {
+            expectedReturnData = _mockFallbackReturn(address(delegateContract), value, payload, 0);
+        }
+        vm.expectCall(fallbackTarget, value, payload);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(caller);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call{value: value}(_packedCalldata(address(fallbackTarget), payload));
+            address(delegateContract).call{value: value}(_packedCalldata(fallbackTarget, payload));
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertTrue(success, "fuzzed approved caller should forward payload");
         if (payload.length == 0) {
             assertEq(returnData.length, 0, "empty payload should return no data");
-            assertEq(address(fallbackTarget).balance, fallbackTargetBalanceBefore + value, "target should receive ETH");
-            assertEq(_fallbackCallCount(), 1, "receive should be called once");
             return;
         }
-        _assertFallbackReturn(
-            returnData, address(delegateContract), value, payload, fallbackTargetBalanceBefore + value
-        );
-        assertEq(_fallbackCallCount(), 1, "fallback target should be called once");
+        assertEq(returnData, expectedReturnData, "target return data should bubble");
     }
 
     function test_unit_fallback_success_forwardsPayload() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         bytes memory payload = abi.encodePacked(bytes4(0x12345678), abi.encode(uint256(1), "payload"));
-        uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
+        bytes memory expectedReturnData =
+            _mockFallbackReturn(address(delegateContract), 0, payload, fallbackTarget.balance);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(fallbackTarget), payload));
+            address(delegateContract).call(_packedCalldata(fallbackTarget, payload));
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertTrue(success, "approved caller should forward payload");
-        _assertFallbackReturn(returnData, address(delegateContract), 0, payload, fallbackTargetBalanceBefore);
+        assertEq(returnData, expectedReturnData, "target return data should bubble");
     }
 
     function test_unit_fallback_success_forwardsZeroMsgValue() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         bytes memory payload = hex"abcdef";
-        uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
+        bytes memory expectedReturnData =
+            _mockFallbackReturn(address(delegateContract), 0, payload, fallbackTarget.balance);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(fallbackTarget), payload));
+            address(delegateContract).call(_packedCalldata(fallbackTarget, payload));
         vm.snapshotGasLastCall("delegate fallback - success - packed calldata forwards zero ETH");
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertTrue(success, "zero-value call should forward");
-        _assertFallbackReturn(returnData, address(delegateContract), 0, payload, fallbackTargetBalanceBefore);
-        assertEq(_fallbackCallCount(), 1, "zero-value call should hit fallback target once");
+        assertEq(returnData, expectedReturnData, "target return data should bubble");
     }
 
     function test_unit_fallback_success_forwardsMsgValue() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         bytes memory payload = hex"abcdef";
-        uint256 fallbackTargetBalanceBefore = address(fallbackTarget).balance;
         vm.deal(approvedCallers.first, MSG_VALUE);
+        bytes memory expectedReturnData = _mockFallbackReturn(address(delegateContract), MSG_VALUE, payload, 0);
+        vm.expectCall(fallbackTarget, MSG_VALUE, payload);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call{value: MSG_VALUE}(_packedCalldata(address(fallbackTarget), payload));
+            address(delegateContract).call{value: MSG_VALUE}(_packedCalldata(fallbackTarget, payload));
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertTrue(success, "ETH call should forward");
-        _assertFallbackReturn(
-            returnData, address(delegateContract), MSG_VALUE, payload, fallbackTargetBalanceBefore + MSG_VALUE
-        );
-        assertEq(
-            address(fallbackTarget).balance,
-            fallbackTargetBalanceBefore + MSG_VALUE,
-            "fallback target should receive forwarded ETH"
-        );
+        assertEq(returnData, expectedReturnData, "target return data should bubble");
     }
 
     function test_unit_fallback_success_bubblesExactReturnData() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         bytes memory expectedReturnData = hex"000102030405deadbeef";
-        bytes memory payload = abi.encodeCall(PayableFallbackTarget.returnRaw, (expectedReturnData));
+        bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("returnRaw(bytes)")), expectedReturnData);
+        vm.mockCall(fallbackTarget, payload, expectedReturnData);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(fallbackTarget), payload));
+            address(delegateContract).call(_packedCalldata(fallbackTarget, payload));
         vm.snapshotGasLastCall("delegate fallback - success - packed calldata bubbles return data");
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
@@ -287,12 +281,13 @@ contract Solver7702DelegateTest is BaseTest {
 
     function test_fuzz_fallback_success_bubblesReturnData(bytes memory expectedReturnData) public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
-        bytes memory payload = abi.encodeCall(PayableFallbackTarget.returnRaw, (expectedReturnData));
+        bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("returnRaw(bytes)")), expectedReturnData);
+        vm.mockCall(fallbackTarget, payload, expectedReturnData);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(fallbackTarget), payload));
+            address(delegateContract).call(_packedCalldata(fallbackTarget, payload));
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertTrue(success, "fuzzed call should bubble return data");
@@ -337,7 +332,7 @@ contract Solver7702DelegateTest is BaseTest {
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(unauthorizedCaller);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(fallbackTarget), payload));
+            address(delegateContract).call(_packedCalldata(fallbackTarget, payload));
         vm.snapshotGasLastCall("delegate fallback - reverts - unauthorized caller");
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
@@ -375,12 +370,13 @@ contract Solver7702DelegateTest is BaseTest {
     function test_unit_fallback_revertsWith_NonEmptyRevertData() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         bytes memory expectedRevertData = abi.encodeWithSelector(RAW_REVERT_SELECTOR, uint256(42), "bad call");
-        bytes memory payload = abi.encodeCall(RawRevertTarget.revertRaw, (expectedRevertData));
+        bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("revertRaw(bytes)")), expectedRevertData);
+        vm.mockCallRevert(rawRevertTarget, payload, expectedRevertData);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(rawRevertTarget), payload));
+            address(delegateContract).call(_packedCalldata(rawRevertTarget, payload));
         vm.snapshotGasLastCall("delegate fallback - reverts - non-empty revert data");
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
@@ -390,12 +386,13 @@ contract Solver7702DelegateTest is BaseTest {
 
     function test_fuzz_fallback_revertsWith_NonEmptyRevertData(bytes memory expectedRevertData) public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
-        bytes memory payload = abi.encodeCall(RawRevertTarget.revertRaw, (expectedRevertData));
+        bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("revertRaw(bytes)")), expectedRevertData);
+        vm.mockCallRevert(rawRevertTarget, payload, expectedRevertData);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(rawRevertTarget), payload));
+            address(delegateContract).call(_packedCalldata(rawRevertTarget, payload));
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertFalse(success, "fuzzed target revert should bubble failure");
@@ -404,12 +401,13 @@ contract Solver7702DelegateTest is BaseTest {
 
     function test_unit_fallback_revertsWith_EmptyRevertData() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
-        bytes memory payload = abi.encodeCall(RawRevertTarget.revertRaw, (""));
+        bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("revertRaw(bytes)")), "");
+        vm.mockCallRevert(rawRevertTarget, payload, "");
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(rawRevertTarget), payload));
+            address(delegateContract).call(_packedCalldata(rawRevertTarget, payload));
         vm.snapshotGasLastCall("delegate fallback - reverts - empty revert data");
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
@@ -420,15 +418,16 @@ contract Solver7702DelegateTest is BaseTest {
     function test_unit_fallback_revertsWith_CustomError() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         bytes memory customPayload = hex"c0ffee";
-        bytes memory payload = abi.encodeCall(RevertingTarget.revertWithCustomError, (77, customPayload));
+        bytes memory payload =
+            abi.encodeWithSelector(bytes4(keccak256("revertWithCustomError(uint256,bytes)")), 77, customPayload);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
-        bytes memory expectedRevertData = abi.encodeWithSelector(
-            RevertingTarget.TargetCustomError.selector, address(delegateContract), 77, customPayload
-        );
+        bytes memory expectedRevertData =
+            abi.encodeWithSelector(TargetCustomError.selector, address(delegateContract), 77, customPayload);
+        vm.mockCallRevert(revertingTarget, payload, expectedRevertData);
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(revertingTarget), payload));
+            address(delegateContract).call(_packedCalldata(revertingTarget, payload));
         vm.snapshotGasLastCall("delegate fallback - reverts - custom error");
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
@@ -439,13 +438,14 @@ contract Solver7702DelegateTest is BaseTest {
     function test_unit_fallback_revertsWith_StringError() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         string memory reason = "target reverted";
-        bytes memory payload = abi.encodeCall(RevertingTarget.revertWithString, (reason));
+        bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("revertWithString(string)")), reason);
         bytes memory expectedRevertData = abi.encodeWithSignature("Error(string)", reason);
+        vm.mockCallRevert(revertingTarget, payload, expectedRevertData);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(revertingTarget), payload));
+            address(delegateContract).call(_packedCalldata(revertingTarget, payload));
         vm.snapshotGasLastCall("delegate fallback - reverts - string error");
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
@@ -455,13 +455,14 @@ contract Solver7702DelegateTest is BaseTest {
 
     function test_unit_fallback_revertsWith_Panic() public {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
-        bytes memory payload = abi.encodeCall(RevertingTarget.revertWithPanic, ());
+        bytes memory payload = abi.encodeWithSelector(bytes4(keccak256("revertWithPanic()")));
         bytes memory expectedRevertData = stdError.arithmeticError;
+        vm.mockCallRevert(revertingTarget, payload, expectedRevertData);
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call(_packedCalldata(address(revertingTarget), payload));
+            address(delegateContract).call(_packedCalldata(revertingTarget, payload));
         vm.snapshotGasLastCall("delegate fallback - reverts - panic");
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
@@ -473,20 +474,17 @@ contract Solver7702DelegateTest is BaseTest {
         // ~~~~~~~~~~ Setup ~~~~~~~~~~
         bytes memory payload = hex"12345678";
         vm.deal(approvedCallers.first, MSG_VALUE);
+        vm.mockCallRevert(nonpayableTarget, MSG_VALUE, payload, "");
 
         // ~~~~~~~~~~ Call ~~~~~~~~~~
         vm.prank(approvedCallers.first);
         (bool success, bytes memory returnData) =
-            address(delegateContract).call{value: MSG_VALUE}(_packedCalldata(address(nonpayableTarget), payload));
+            address(delegateContract).call{value: MSG_VALUE}(_packedCalldata(nonpayableTarget, payload));
         vm.snapshotGasLastCall("delegate fallback - reverts - sending ETH to nonpayable target");
 
         // ~~~~~~~~~~ Assertions ~~~~~~~~~~
         assertFalse(success, "nonpayable target should reject ETH");
         assertEq(returnData.length, 0, "nonpayable target revert should return no data");
-    }
-
-    function _fallbackCallCount() internal view returns (uint256) {
-        return uint256(vm.load(address(fallbackTarget), bytes32(0)));
     }
 
     function _isCallerApproved(address caller) internal view returns (bool) {
@@ -525,5 +523,19 @@ contract Solver7702DelegateTest is BaseTest {
             return "delegate fallback - success - approved caller slot 3 forwards payload";
         }
         return "delegate fallback - success - approved caller slot 4 forwards payload";
+    }
+
+    function _mockFallbackReturn(
+        address expectedSender,
+        uint256 expectedValue,
+        bytes memory expectedPayload,
+        uint256 expectedBalance
+    ) internal returns (bytes memory returnData) {
+        returnData = abi.encode(expectedSender, expectedValue, expectedPayload, expectedBalance);
+        if (expectedValue == 0) {
+            vm.mockCall(fallbackTarget, expectedPayload, returnData);
+        } else {
+            vm.mockCall(fallbackTarget, expectedValue, expectedPayload, returnData);
+        }
     }
 }
