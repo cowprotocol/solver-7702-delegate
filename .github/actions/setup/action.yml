@@ -5,9 +5,9 @@ description: Install Foundry, just, and local development dependencies.
 runs:
   using: composite
   steps:
-    - uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # action v1.8.0, installs Foundry v1.7.0
+    - uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # action v1.8.0, installs Foundry v1.7.1
       with:
-        version: v1.7.0
+        version: v1.7.1
 
     - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # action v4, installs just 1.50.0
       with:

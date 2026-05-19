@@ -36,13 +36,13 @@ just fmt
 
 ### Local tooling
 
-Foundry should be installed locally and pinned to `v1.7.0`.
+Foundry should be installed locally and pinned to `v1.7.1`.
 CI uses the same Foundry version.
 
 Install Foundry with:
 
 ```shell
-foundryup --install v1.7.0
+foundryup --install v1.7.1
 ```
 
 Check that the expected version is active with:
@@ -51,7 +51,7 @@ Check that the expected version is active with:
 forge --version
 ```
 
-The output should end in `v1.7.0`.
+The output should end in `v1.7.1`.
 
 Solhint and Slither are pinned as local development dependencies under `dev/`.
 
