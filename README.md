@@ -42,7 +42,7 @@ CI uses the same Foundry version.
 Install Foundry with:
 
 ```shell
-foundryup -i v1.7.0
+foundryup --install v1.7.0
 ```
 
 Check that the expected version is active with:
