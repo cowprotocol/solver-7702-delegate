@@ -24,6 +24,25 @@ If specific features are needed (like PUSH0 in 0.8.20 for gas optimizations or t
 just test
 ```
 
+#### Replaying Your Own Historical Transactions
+
+The fork test `test_fork_historicalTransaction_directVsDelegated_userSuppliedTxHashes` lets you replay your own batch transactions through the delegate.
+
+Set:
+
+- `ETH_MAINNET_RPC_URL` to the RPC URL you want Foundry to fork from.
+- `COW_HISTORICAL_TX_HASHES` to a comma-separated list of transaction hashes.
+
+Despite the env var name, `ETH_MAINNET_RPC_URL` can point at another network RPC URL. The supplied transaction hashes just need to exist on that network, and the RPC must support the historical state needed by `vm.rollFork(txHash)`.
+
+Example:
+
+```shell
+ETH_MAINNET_RPC_URL=<your_rpc_url> \
+COW_HISTORICAL_TX_HASHES=0xabc...,0xdef... \
+just test --match-test test_fork_historicalTransaction_directVsDelegated_userSuppliedTxHashes
+```
+
 ### Format
 
 ```shell

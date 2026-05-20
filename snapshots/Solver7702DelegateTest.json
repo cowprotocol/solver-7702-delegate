@@ -1,21 +1,8 @@
 {
-  "constructor - success - distinct callers": "536076",
-  "constructor - success - duplicate callers": "536076",
-  "constructor - success - zero address callers": "536076",
-  "delegate fallback - reverts - custom error": "671",
-  "delegate fallback - reverts - empty revert data": "638",
-  "delegate fallback - reverts - non-empty revert data": "683",
-  "delegate fallback - reverts - panic": "638",
-  "delegate fallback - reverts - sending ETH to nonpayable target": "7332",
-  "delegate fallback - reverts - string error": "656",
-  "delegate fallback - reverts - unauthorized caller": "460",
-  "delegate fallback - success - approved caller slot 0 forwards payload": "15428",
-  "delegate fallback - success - approved caller slot 1 forwards payload": "24329",
-  "delegate fallback - success - approved caller slot 2 forwards payload": "24390",
-  "delegate fallback - success - approved caller slot 3 forwards payload": "24452",
-  "delegate fallback - success - approved caller slot 4 forwards payload": "24480",
-  "delegate fallback - success - packed calldata bubbles return data": "646",
-  "delegate fallback - success - packed calldata forwards zero ETH": "658",
-  "delegate fallback - success - target has no code": "3131",
-  "delegate fallback - success - target is zero address": "631"
+  "delegate fallback - success - approved caller slot 0 forwards payload": "7337",
+  "delegate fallback - success - approved caller slot 1 forwards payload": "7371",
+  "delegate fallback - success - approved caller slot 2 forwards payload": "7405",
+  "delegate fallback - success - approved caller slot 3 forwards payload": "7439",
+  "delegate fallback - success - approved caller slot 4 forwards payload": "7473",
+  "delegate fallback - success - packed calldata forwards zero ETH": "658"
 }

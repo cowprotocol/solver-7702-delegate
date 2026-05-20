@@ -3,71 +3,24 @@ pragma solidity ^0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 
-import {Solver7702Delegate} from "src/Solver7702Delegate.sol";
-
-struct ApprovedCallers {
-    /// @notice First approved caller slot.
-    address first;
-    /// @notice Second approved caller slot.
-    address second;
-    /// @notice Third approved caller slot.
-    address third;
-    /// @notice Fourth approved caller slot.
-    address fourth;
-    /// @notice Fifth approved caller slot.
-    address fifth;
-}
-
 /// @notice Shared setup and helpers for Solver7702Delegate tests.
 abstract contract BaseTest is Test {
-    /// @notice Private key for the EOA that gets EIP-7702 delegation attached.
-    uint256 internal constant SOLVER_PRIVATE_KEY = uint256(keccak256("SOLVER_PRIVATE_KEY"));
-    /// @notice ETH value used by tests that forward native token value.
-    uint256 internal constant MSG_VALUE = 1 ether;
-    /// @notice Number of bytes used to encode the packed target address.
-    uint256 internal constant PACKED_TARGET_LENGTH = 20;
-    /// @notice Selector for RawRevert(uint256,string).
-    bytes4 internal constant RAW_REVERT_SELECTOR = bytes4(keccak256("RawRevert(uint256,string)"));
-
-    /// @notice Shared solver address.
-    address internal solver;
-    /// @notice Shared unauthorized caller address.
-    address internal unauthorizedCaller;
     /// @notice Shared approved callers.
-    ApprovedCallers internal approvedCallers;
-    /// @notice Shared delegate contract.
-    Solver7702Delegate internal delegateContract;
+    address[5] internal approvedCallers;
 
-    /// @notice Creates the default solver, approved callers, and delegate contract.
+    /// @notice Creates the default approved callers.
     function setUp() public virtual {
-        solver = vm.addr(SOLVER_PRIVATE_KEY);
-        unauthorizedCaller = makeAddr("UNAUTHORIZED_CALLER");
-        approvedCallers = ApprovedCallers({
-            first: makeAddr("APPROVED_CALLER_0"),
-            second: makeAddr("APPROVED_CALLER_1"),
-            third: makeAddr("APPROVED_CALLER_2"),
-            fourth: makeAddr("APPROVED_CALLER_3"),
-            fifth: makeAddr("APPROVED_CALLER_4")
-        });
-
-        delegateContract = new Solver7702Delegate(
-            [
-                approvedCallers.first,
-                approvedCallers.second,
-                approvedCallers.third,
-                approvedCallers.fourth,
-                approvedCallers.fifth
-            ]
-        );
+        approvedCallers = [
+            makeAddr("APPROVED_CALLER_0"),
+            makeAddr("APPROVED_CALLER_1"),
+            makeAddr("APPROVED_CALLER_2"),
+            makeAddr("APPROVED_CALLER_3"),
+            makeAddr("APPROVED_CALLER_4")
+        ];
     }
 
     /// @notice Encodes the delegate fallback calldata as a 20-byte target followed by payload.
     function _packedCalldata(address target, bytes memory payload) internal pure returns (bytes memory) {
         return abi.encodePacked(bytes20(target), payload);
-    }
-
-    /// @notice Attaches the delegate code to the solver EOA.
-    function _attachDelegation(uint256 solverPrivateKey) internal {
-        vm.signAndAttachDelegation(address(delegateContract), solverPrivateKey);
     }
 }
