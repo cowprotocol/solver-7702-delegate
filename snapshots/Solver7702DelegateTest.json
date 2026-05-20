@@ -1,8 +1,11 @@
 {
-  "delegate fallback - success - approved caller slot 0 forwards payload": "7337",
-  "delegate fallback - success - approved caller slot 1 forwards payload": "7371",
-  "delegate fallback - success - approved caller slot 2 forwards payload": "7405",
-  "delegate fallback - success - approved caller slot 3 forwards payload": "7439",
-  "delegate fallback - success - approved caller slot 4 forwards payload": "7473",
-  "delegate fallback - success - packed calldata forwards zero ETH": "658"
+  "approved caller empty target payload - success - forwards": "628",
+  "approved caller short calldata - success - receives ETH": "47",
+  "approved caller short calldata - success - returns empty": "47",
+  "approved caller target empty revert - reverts - bubbles empty data": "638",
+  "approved caller target payload - success - forwards": "7331",
+  "approved caller target return data - success - bubbles return data": "646",
+  "approved caller target revert data - reverts - bubbles non-empty data": "683",
+  "unauthorized caller - success - receives ETH": "47",
+  "unauthorized caller no value - reverts - unauthorized": "460"
 }
