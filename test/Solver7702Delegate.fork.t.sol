@@ -15,6 +15,13 @@ contract Solver7702DelegateForkTest is BaseTest {
         bytes32 txHash;
     }
 
+    struct HistoricalCall {
+        address originalSolver;
+        address target;
+        uint256 value;
+        bytes payload;
+    }
+
     function test_fork_historicalTransaction_directVsDelegated_usdcForEura() public {
         _runHistoricalTransaction(
             HistoricalTransaction({
@@ -72,14 +79,13 @@ contract Solver7702DelegateForkTest is BaseTest {
         }
     }
 
-    function _runHistoricalTransaction(HistoricalTransaction memory transaction, bool snapshotGas) internal {
+    function _runHistoricalTransaction(HistoricalTransaction memory txn, bool snapshotGas) internal {
         // 1. Create a fork and roll to the transaction block.
         vm.createSelectFork(vm.envString(MAINNET_RPC_ENV));
-        vm.rollFork(transaction.txHash);
-        (address originalSolver, address target, bytes memory payload) =
-            _historicalTargetAndCalldata(transaction.txHash);
-        assertTrue(target != address(0), "historical transaction target missing");
-        assertGt(payload.length, 0, "historical transaction calldata missing");
+        vm.rollFork(txn.txHash);
+        HistoricalCall memory hc = _historicalTargetAndCalldata(txn.txHash);
+        assertTrue(hc.target != address(0), "historical transaction target missing");
+        assertGt(hc.payload.length, 0, "historical transaction calldata missing");
 
         // 2. Take a snapshot of the state.
         uint256 snapshot = vm.snapshotState();
@@ -90,15 +96,14 @@ contract Solver7702DelegateForkTest is BaseTest {
         bytes memory delegatedReturnData;
 
         // 3. Call the target directly and snapshot the gas if requested.
-        vm.prank(originalSolver);
-        (directSuccess, directReturnData) = target.call(payload);
+        vm.prank(hc.originalSolver);
+        (directSuccess, directReturnData) = hc.target.call{value: hc.value}(hc.payload);
         if (snapshotGas) {
-            vm.snapshotGasLastCall(string.concat("historical tx - ", transaction.label, " - direct call"));
+            vm.snapshotGasLastCall(string.concat("historical tx - ", txn.label, " - direct call"));
         }
 
         // 4. Call the target through delegation and snapshot the gas if requested.
-        (delegatedSuccess, delegatedReturnData) =
-            _runHistoricalTransactionDelegated(transaction, originalSolver, target, payload, snapshot, snapshotGas);
+        (delegatedSuccess, delegatedReturnData) = _runHistoricalTransactionDelegated(txn, hc, snapshot, snapshotGas);
 
         // 5. Assert the results.
         assertTrue(directSuccess, "direct replay failed");
@@ -108,10 +113,8 @@ contract Solver7702DelegateForkTest is BaseTest {
     }
 
     function _runHistoricalTransactionDelegated(
-        HistoricalTransaction memory transaction,
-        address originalSolver,
-        address target,
-        bytes memory payload,
+        HistoricalTransaction memory txn,
+        HistoricalCall memory hc,
         uint256 snapshot,
         bool snapshotGas
     ) internal returns (bool delegatedSuccess, bytes memory delegatedReturnData) {
@@ -123,37 +126,39 @@ contract Solver7702DelegateForkTest is BaseTest {
         delegateContract = new Solver7702Delegate(approvedCallers);
 
         // Set the original solver to delegate to the new delegate contract.
-        vm.etch(originalSolver, abi.encodePacked(EIP7702_DELEGATION_PREFIX, address(delegateContract)));
+        vm.etch(hc.originalSolver, abi.encodePacked(EIP7702_DELEGATION_PREFIX, address(delegateContract)));
 
+        vm.deal(approvedCallers[0], hc.value);
         vm.prank(approvedCallers[0]);
-        (delegatedSuccess, delegatedReturnData) = originalSolver.call(_packedCalldata(target, payload));
+        (delegatedSuccess, delegatedReturnData) =
+            hc.originalSolver.call{value: hc.value}(_packedCalldata(hc.target, hc.payload));
         if (snapshotGas) {
-            vm.snapshotGasLastCall(string.concat("historical tx - ", transaction.label, " - delegated call"));
+            vm.snapshotGasLastCall(string.concat("historical tx - ", txn.label, " - delegated call"));
         }
     }
 
-    function _historicalTargetAndCalldata(bytes32 txHash)
-        internal
-        returns (address from, address to, bytes memory input)
-    {
+    function _historicalTargetAndCalldata(bytes32 txHash) internal returns (HistoricalCall memory hc) {
         bytes memory data = vm.rpc("eth_getTransactionByHash", string.concat("[\"", vm.toString(txHash), "\"]"));
         uint256 tupleStart = _readUint(data, 0);
         uint256 fromOffset = 0x80;
         uint256 toOffset = 0x1c0;
+        uint256 valueOffset = 0x240;
         uint256 inputOffsetOffset = 0x100;
 
-        from = _readAddress(data, tupleStart + fromOffset);
-        if (from == address(0)) {
+        hc.originalSolver = _readAddress(data, tupleStart + fromOffset);
+        if (hc.originalSolver == address(0)) {
             fromOffset = 0xa0;
             toOffset = 0x1e0;
+            valueOffset = 0x260;
             inputOffsetOffset = 0x120;
-            from = _readAddress(data, tupleStart + fromOffset);
+            hc.originalSolver = _readAddress(data, tupleStart + fromOffset);
         }
 
-        to = _readAddress(data, tupleStart + toOffset);
+        hc.target = _readAddress(data, tupleStart + toOffset);
+        hc.value = _readDynamicUint(data, tupleStart, valueOffset);
         uint256 inputOffset = _readUint(data, tupleStart + inputOffsetOffset);
         uint256 inputStart = tupleStart + inputOffset;
-        input = _readBytes(data, inputStart);
+        hc.payload = _readBytes(data, inputStart);
     }
 
     function _readAddress(bytes memory data, uint256 offset) internal pure returns (address value) {
@@ -163,6 +168,18 @@ contract Solver7702DelegateForkTest is BaseTest {
     function _readUint(bytes memory data, uint256 offset) internal pure returns (uint256 value) {
         for (uint256 i; i < 32; ++i) {
             value = (value << 8) | uint8(data[offset + i]);
+        }
+    }
+
+    function _readDynamicUint(bytes memory data, uint256 tupleStart, uint256 offset)
+        internal
+        pure
+        returns (uint256 value)
+    {
+        uint256 valueStart = tupleStart + _readUint(data, tupleStart + offset);
+        uint256 length = _readUint(data, valueStart);
+        for (uint256 i; i < length; ++i) {
+            value = (value << 8) | uint8(data[valueStart + 32 + i]);
         }
     }
 
