@@ -110,14 +110,11 @@ just snapshot
 
 ### Deploy
 
-The deploy script reads the five approved caller addresses from environment variables:
+The deploy script reads up to five approved caller addresses from `APPROVED_CALLERS`.
+If fewer than five addresses are needed, omit the rest.
 
 ```shell
-export APPROVED_CALLER_0=<approved_caller_0>
-export APPROVED_CALLER_1=<approved_caller_1>
-export APPROVED_CALLER_2=<approved_caller_2>
-export APPROVED_CALLER_3=<approved_caller_3>
-export APPROVED_CALLER_4=<approved_caller_4>
+export APPROVED_CALLERS=<approved_caller_0>,<approved_caller_1>
 
 just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
   --rpc-url <your_rpc_url> \
@@ -125,12 +122,10 @@ just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate
   --broadcast
 ```
 
-This deploys without `CREATE2`.
-
-To deploy with `CREATE2`, set `SALT`. Exact `0x`-prefixed 32-byte hex values are used directly as the `CREATE2` salt. Any other value is treated as a string and hashed as `keccak256(bytes(SALT))`:
+Deployments use `CREATE2` with a zero salt by default. To use a different salt, pass a `bytes32` value:
 
 ```shell
-export SALT=<salt>
+export SALT=<bytes32_salt>
 
 just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
   --rpc-url <your_rpc_url> \
@@ -138,19 +133,12 @@ just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate
   --broadcast
 ```
 
-When `SALT` is set, Foundry uses the canonical `CREATE2` deployer `0x4e59b44847b379578588920cA78FbF26c0B4956C`, unless a different address is passed with `--create2-deployer`.
-The `CREATE2` address is deterministic. To get the same address across networks, use the same `CREATE2` deployer address, salt, bytecode, and approved caller addresses.
-
-To compute the `CREATE2` address before deployment with the approved caller addresses from the same environment variables:
+To simulate the deployment and inspect the computed address, run the same command without `--broadcast`:
 
 ```shell
-just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate --sig predictAddress
-```
-
-Set `CREATE2_DEPLOYER` to the address passed with `--create2-deployer` if you override Foundry's default:
-
-```shell
-export CREATE2_DEPLOYER=<create2_deployer>
+just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
+  --rpc-url <your_rpc_url> \
+  --private-key <your_private_key>
 ```
 
 ## New project creation checklist
