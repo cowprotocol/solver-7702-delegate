@@ -35,22 +35,22 @@ contract Solver7702Delegate {
 
     /// @notice Fallback function to handle calls to the delegate
     fallback() external payable {
-        // Simply receive ETH
-        if (msg.data.length < 20) return;
-
         // Possibly short circuit by recognizing one of the approved callers
-        if (msg.sender == APPROVED_CALLER_0) return _callThrough();
-        if (msg.sender == APPROVED_CALLER_1) return _callThrough();
-        if (msg.sender == APPROVED_CALLER_2) return _callThrough();
-        if (msg.sender == APPROVED_CALLER_3) return _callThrough();
-        if (msg.sender == APPROVED_CALLER_4) return _callThrough();
+        if (
+            msg.sender == APPROVED_CALLER_0 || msg.sender == APPROVED_CALLER_1 || msg.sender == APPROVED_CALLER_2
+                || msg.sender == APPROVED_CALLER_3 || msg.sender == APPROVED_CALLER_4
+        ) return _callThrough();
 
-        // Revert if caller is unauthorized
+        // Accept ETH from anyone, even if unauthorized
+        if (msg.value > 0) return;
         revert Unauthorized(msg.sender);
     }
 
     function _callThrough() internal {
-        // For our purposes, the target address is encoded as the first 20 bytes of the input data
+        // Receive ETH and exit when no target address is encoded.
+        if (msg.data.length < 20) return;
+
+        // Extract the first 20 bytes of calldata as the target address.
         address target = address(bytes20(msg.data[0:20]));
 
         assembly {
@@ -67,8 +67,8 @@ contract Solver7702Delegate {
                     callvalue(), // value - forward all Ether
                     0x00, // input offset - pointer to calldata
                     sub(calldatasize(), 20), // input size - length of calldata
-                    0x00, // output offset - 0 because we don't know the size yet
-                    0x00 // output size - 0 because we don't know the size yet
+                    0x00, // output offset - read via returndatacopy below
+                    0x00 // output size - read via returndatacopy below
                 )
 
             // Copy return data into memory
