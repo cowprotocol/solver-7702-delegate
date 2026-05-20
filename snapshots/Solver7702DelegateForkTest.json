@@ -1,12 +1,12 @@
 {
-  "historical tx - USDC permit to MOG - delegated call": "454459",
-  "historical tx - USDC permit to MOG - direct call": "450644",
-  "historical tx - USDC to EURA - delegated call": "208422",
-  "historical tx - USDC to EURA - direct call": "202274",
-  "historical tx - USDT to AAVE - delegated call": "790737",
-  "historical tx - USDT to AAVE - direct call": "786648",
-  "historical tx - WETH to USDC - delegated call": "261411",
-  "historical tx - WETH to USDC - direct call": "257749",
-  "historical tx - YFI to USDC - delegated call": "832973",
-  "historical tx - YFI to USDC - direct call": "826024"
+  "historical tx - USDC permit to MOG - delegated call": "426754",
+  "historical tx - USDC permit to MOG - direct call": "422548",
+  "historical tx - USDC to EURA - delegated call": "234777",
+  "historical tx - USDC to EURA - direct call": "228238",
+  "historical tx - USDT to AAVE - delegated call": "752152",
+  "historical tx - USDT to AAVE - direct call": "747672",
+  "historical tx - WETH to USDC - delegated call": "293830",
+  "historical tx - WETH to USDC - direct call": "289777",
+  "historical tx - YFI to USDC - delegated call": "780640",
+  "historical tx - YFI to USDC - direct call": "773300"
 }
