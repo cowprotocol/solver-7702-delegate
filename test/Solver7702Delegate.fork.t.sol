@@ -5,13 +5,15 @@ import {Solver7702Delegate} from "src/Solver7702Delegate.sol";
 import {BaseTest} from "test/BaseTest.t.sol";
 
 contract Solver7702DelegateForkTest is BaseTest {
-    string internal constant MAINNET_RPC_ENV = "ETH_MAINNET_RPC_URL";
+    string internal constant FORK_RPC_ENV = "FORK_RPC_URL";
+    string internal constant BASE_RPC_ENV = "BASE_RPC_URL";
     bytes internal constant EIP7702_DELEGATION_PREFIX = hex"ef0100";
 
     Solver7702Delegate internal delegateContract;
 
     struct HistoricalTransaction {
         string label;
+        string rpcEnv;
         bytes32 txHash;
     }
 
@@ -25,7 +27,9 @@ contract Solver7702DelegateForkTest is BaseTest {
     function test_fork_historicalTransaction_directVsDelegated_usdcForEura() public {
         _runHistoricalTransaction(
             HistoricalTransaction({
-                label: "USDC to EURA", txHash: 0x8db7514f572db097bc1dce61402f347c1ace164a9e2de7f0dd0f32443f2e9d7f
+                label: "USDC to EURA",
+                rpcEnv: FORK_RPC_ENV,
+                txHash: 0x8db7514f572db097bc1dce61402f347c1ace164a9e2de7f0dd0f32443f2e9d7f
             }),
             true
         );
@@ -34,7 +38,9 @@ contract Solver7702DelegateForkTest is BaseTest {
     function test_fork_historicalTransaction_directVsDelegated_wethForUsdc() public {
         _runHistoricalTransaction(
             HistoricalTransaction({
-                label: "WETH to USDC", txHash: 0x80a37a1af03bd0c3d8030c764b66c332d580d497a04e3e00c9746de49e47cf4e
+                label: "WETH to USDC",
+                rpcEnv: FORK_RPC_ENV,
+                txHash: 0x80a37a1af03bd0c3d8030c764b66c332d580d497a04e3e00c9746de49e47cf4e
             }),
             true
         );
@@ -43,7 +49,9 @@ contract Solver7702DelegateForkTest is BaseTest {
     function test_fork_historicalTransaction_directVsDelegated_yfiForUsdc() public {
         _runHistoricalTransaction(
             HistoricalTransaction({
-                label: "YFI to USDC", txHash: 0x38793b2b90a472f43ebe9ff35105132cb4e2be906a89f4bb0017bdedf29b8f53
+                label: "YFI to USDC",
+                rpcEnv: FORK_RPC_ENV,
+                txHash: 0x38793b2b90a472f43ebe9ff35105132cb4e2be906a89f4bb0017bdedf29b8f53
             }),
             true
         );
@@ -52,7 +60,9 @@ contract Solver7702DelegateForkTest is BaseTest {
     function test_fork_historicalTransaction_directVsDelegated_usdtForAave() public {
         _runHistoricalTransaction(
             HistoricalTransaction({
-                label: "USDT to AAVE", txHash: 0x67ffdb1c1afb013b3c848a891fca0b6924bd9584be9ee7776d09b772dcb6739a
+                label: "USDT to AAVE",
+                rpcEnv: FORK_RPC_ENV,
+                txHash: 0x67ffdb1c1afb013b3c848a891fca0b6924bd9584be9ee7776d09b772dcb6739a
             }),
             true
         );
@@ -61,7 +71,42 @@ contract Solver7702DelegateForkTest is BaseTest {
     function test_fork_historicalTransaction_directVsDelegated_usdcPermitForMog() public {
         _runHistoricalTransaction(
             HistoricalTransaction({
-                label: "USDC permit to MOG", txHash: 0xc157c9b4214a1c901ad25c1da17be6094490971bae4475ff55971d309f463702
+                label: "USDC permit to MOG",
+                rpcEnv: FORK_RPC_ENV,
+                txHash: 0xc157c9b4214a1c901ad25c1da17be6094490971bae4475ff55971d309f463702
+            }),
+            true
+        );
+    }
+
+    function test_fork_historicalTransaction_directVsDelegated_flashloanOrder() public {
+        _runHistoricalTransaction(
+            HistoricalTransaction({
+                label: "flashloan order",
+                rpcEnv: FORK_RPC_ENV,
+                txHash: 0x20f98e4ad57b1d4dea8460d22cde561a6a7dcc052b355a381459f137be87a085
+            }),
+            true
+        );
+    }
+
+    function test_fork_historicalTransaction_directVsDelegated_flashloanWrapperOrder() public {
+        _runHistoricalTransaction(
+            HistoricalTransaction({
+                label: "flashloan wrapper order",
+                rpcEnv: FORK_RPC_ENV,
+                txHash: 0x83fb9d756e2b74dd0e42a60244b193566a5120b7b41bd5ad8378454cf9954ed5
+            }),
+            true
+        );
+    }
+
+    function test_fork_historicalTransaction_directVsDelegated_bridgeOrder() public {
+        _runHistoricalTransaction(
+            HistoricalTransaction({
+                label: "bridge order",
+                rpcEnv: BASE_RPC_ENV,
+                txHash: 0xc3080dc5c7852550ce99d2122887e2a26f9c4d5cc0ba2152cef77a8878f6c45a
             }),
             true
         );
@@ -75,13 +120,15 @@ contract Solver7702DelegateForkTest is BaseTest {
 
         string[] memory txHashes = vm.split(rawTxHashes, ",");
         for (uint256 i; i < txHashes.length; ++i) {
-            _runHistoricalTransaction(HistoricalTransaction({label: "", txHash: vm.parseBytes32(txHashes[i])}), false);
+            _runHistoricalTransaction(
+                HistoricalTransaction({label: "", rpcEnv: FORK_RPC_ENV, txHash: vm.parseBytes32(txHashes[i])}), false
+            );
         }
     }
 
     function _runHistoricalTransaction(HistoricalTransaction memory txn, bool snapshotGas) internal {
         // 1. Create a fork and roll to the transaction block.
-        vm.createSelectFork(vm.envString(MAINNET_RPC_ENV));
+        vm.createSelectFork(vm.envString(txn.rpcEnv));
         vm.rollFork(txn.txHash);
         HistoricalCall memory hc = _historicalTargetAndCalldata(txn.txHash);
         assertTrue(hc.target != address(0), "historical transaction target missing");
@@ -96,8 +143,15 @@ contract Solver7702DelegateForkTest is BaseTest {
         bytes memory delegatedReturnData;
 
         // 3. Call the target directly and snapshot the gas if requested.
-        vm.prank(hc.originalSolver);
-        (directSuccess, directReturnData) = hc.target.call{value: hc.value}(hc.payload);
+        if (hc.value > 0) {
+            vm.deal(hc.originalSolver, hc.value);
+        }
+        vm.prank(hc.originalSolver, hc.originalSolver);
+        if (hc.value == 0) {
+            (directSuccess, directReturnData) = hc.target.call(hc.payload);
+        } else {
+            (directSuccess, directReturnData) = hc.target.call{value: hc.value}(hc.payload);
+        }
         if (snapshotGas) {
             vm.snapshotGasLastCall(string.concat("historical tx - ", txn.label, " - direct call"));
         }
@@ -128,10 +182,16 @@ contract Solver7702DelegateForkTest is BaseTest {
         // Set the original solver to delegate to the new delegate contract.
         vm.etch(hc.originalSolver, abi.encodePacked(EIP7702_DELEGATION_PREFIX, address(delegateContract)));
 
-        vm.deal(approvedCallers[0], hc.value);
-        vm.prank(approvedCallers[0]);
-        (delegatedSuccess, delegatedReturnData) =
-            hc.originalSolver.call{value: hc.value}(_packedCalldata(hc.target, hc.payload));
+        if (hc.value > 0) {
+            vm.deal(approvedCallers[0], hc.value);
+        }
+        vm.prank(approvedCallers[0], hc.originalSolver);
+        if (hc.value == 0) {
+            (delegatedSuccess, delegatedReturnData) = hc.originalSolver.call(_packedCalldata(hc.target, hc.payload));
+        } else {
+            (delegatedSuccess, delegatedReturnData) =
+                hc.originalSolver.call{value: hc.value}(_packedCalldata(hc.target, hc.payload));
+        }
         if (snapshotGas) {
             vm.snapshotGasLastCall(string.concat("historical tx - ", txn.label, " - delegated call"));
         }

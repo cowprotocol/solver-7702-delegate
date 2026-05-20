@@ -8,5 +8,11 @@
   "historical tx - WETH to USDC - delegated call": "293830",
   "historical tx - WETH to USDC - direct call": "289777",
   "historical tx - YFI to USDC - delegated call": "780640",
-  "historical tx - YFI to USDC - direct call": "773300"
+  "historical tx - YFI to USDC - direct call": "773300",
+  "historical tx - bridge order - delegated call": "372631",
+  "historical tx - bridge order - direct call": "368230",
+  "historical tx - flashloan order - delegated call": "1311087",
+  "historical tx - flashloan order - direct call": "1306374",
+  "historical tx - flashloan wrapper order - delegated call": "938301",
+  "historical tx - flashloan wrapper order - direct call": "933772"
 }

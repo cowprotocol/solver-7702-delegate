@@ -57,7 +57,10 @@ coverage-check:
     git diff --binary -- snapshots > "$snapshot_patch"; \
     cleanup() { git restore --worktree snapshots; if [ -s "$snapshot_patch" ]; then git apply "$snapshot_patch"; fi; rm -rf "$tmp_dir"; rm -f coverage.txt; }; \
     trap cleanup EXIT; \
-    {{JUST}} coverage-summary > coverage.txt; \
+    if ! {{JUST}} coverage-summary > coverage.txt 2>&1; then \
+        cat coverage.txt; \
+        exit 1; \
+    fi; \
     cat coverage.txt; \
     awk -v threshold={{COVERAGE_MIN}} '\
         BEGIN { labels[4]="lines"; labels[7]="statements"; labels[10]="branches"; labels[13]="funcs"; min=100; below="" } \

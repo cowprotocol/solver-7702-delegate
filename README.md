@@ -32,15 +32,15 @@ The fork test `test_fork_historicalTransaction_directVsDelegated_userSuppliedTxH
 
 Set:
 
-- `ETH_MAINNET_RPC_URL` to the RPC URL you want Foundry to fork from.
+- `FORK_RPC_URL` to the RPC URL you want Foundry to fork from.
 - `COW_HISTORICAL_TX_HASHES` to a comma-separated list of transaction hashes.
 
-Despite the env var name, `ETH_MAINNET_RPC_URL` can point at another network RPC URL. The supplied transaction hashes just need to exist on that network, and the RPC must support the historical state needed by `vm.rollFork(txHash)`.
+The supplied transaction hashes just need to exist on that network, and the RPC must support the historical state needed by `vm.rollFork(txHash)`.
 
 Example:
 
 ```shell
-ETH_MAINNET_RPC_URL=<your_rpc_url> \
+FORK_RPC_URL=<your_rpc_url> \
 COW_HISTORICAL_TX_HASHES=0xabc...,0xdef... \
 just test --match-test test_fork_historicalTransaction_directVsDelegated_userSuppliedTxHashes
 ```

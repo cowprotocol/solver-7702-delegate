@@ -21,6 +21,6 @@ abstract contract BaseTest is Test {
 
     /// @notice Encodes the delegate fallback calldata as a 20-byte target followed by payload.
     function _packedCalldata(address target, bytes memory payload) internal pure returns (bytes memory) {
-        return abi.encodePacked(bytes20(target), payload);
+        return abi.encodePacked(target, payload);
     }
 }
