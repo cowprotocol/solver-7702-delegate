@@ -3,11 +3,6 @@ set quiet # Doesn't print the command that is being run
 
 COVERAGE_MIN := env_var_or_default("COVERAGE_MIN", "100")
 SOLHINT := "dev/node_modules/.bin/solhint" # Binary path for local Solhint installation
-FORGE := "dev/node_modules/.bin/forge" # Binary path for local Forge installation
-ANVIL := "dev/node_modules/.bin/anvil" # Binary path for local Anvil installation
-CAST := "dev/node_modules/.bin/cast" # Binary path for local Cast installation
-CHISEL := "dev/node_modules/.bin/chisel" # Binary path for local Chisel installation
-NPM_BIN := "dev/node_modules/.bin" # Directory containing the local NPM binaries
 JUST := just_executable()
 
 # Runs `just help`
@@ -21,54 +16,38 @@ register-hooks:
 help:
     {{JUST}} --list
 
-# Run the local Forge binary
-forge *args:
-    {{FORGE}} {{args}}
-
-# Run the local Anvil binary
-anvil *args:
-    {{ANVIL}} {{args}}
-
-# Run the local Cast binary
-cast *args:
-    {{CAST}} {{args}}
-
-# Run the local Chisel binary
-chisel *args:
-    {{CHISEL}} {{args}}
-
 # Compile contracts
 build:
-    {{FORGE}} build
+    forge build
 
 # Compile all contracts
 build-all:
-    {{FORGE}} build --force
+    forge build --force
 
 # Format Solidity sources
 fmt:
-    {{FORGE}} fmt
+    forge fmt
 
 # Check formatting and run `solhint` on `src`/`script`/`test`
 lint:
-    {{FORGE}} fmt --check
+    forge fmt --check
     {{SOLHINT}} --max-warnings 0 '**/*.sol'
 
 # Run Slither static analysis on `src`
 slither:
-    PATH="$PWD/{{NPM_BIN}}:$PATH" uv run --project dev slither src --config-file slither.config.json
+    uv run --project dev slither src --config-file slither.config.json
 
 # Run tests
-test *args:
-    {{FORGE}} test -vvv --show-progress {{args}}
+test:
+    forge test -vvv --show-progress --gas-snapshot-check true
 
 # Print coverage summary
 coverage-summary:
-    {{FORGE}} coverage --no-match-coverage "^(test|script|lib)/" --report summary
+    forge coverage --no-match-coverage "^(test|script)/" --report summary
 
 # Generate lcov coverage report
 coverage-lcov:
-    {{FORGE}} coverage --no-match-coverage "^(test|script|lib)/" --report lcov
+    forge coverage --no-match-coverage "^(test|script)/" --report lcov
 
 # Fail if the minimum of all four coverage metrics (lines/statements/branches/funcs) on the `Total` row is below `COVERAGE_MIN` (default `100`)
 coverage-check:
@@ -94,7 +73,7 @@ coverage-check:
 
 # Generate gas snapshots
 snapshot:
-    {{FORGE}} snapshot --desc --show-progress
+    forge snapshot --desc --show-progress
 
 # Run build, lint, slither, coverage-check, snapshot
 all: build lint slither coverage-check snapshot

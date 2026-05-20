@@ -2,7 +2,7 @@
 pragma solidity ^0.8.34;
 
 /// @title Solver7702Delegate
-/// @author CoW DAO Developers
+/// @author CoW Foundation
 /// @notice ERC-7702 delegation target for solver EOAs
 contract Solver7702Delegate {
     /// @notice Error thrown when a caller is unauthorized
