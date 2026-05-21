@@ -34,6 +34,7 @@ contract Solver7702Delegate {
     }
 
     /// @notice Fallback function to handle calls to the delegate
+    /// @dev Expected calldata format is `bytes20(target) || targetCalldata`.
     fallback() external payable {
         // Possibly short circuit by recognizing one of the approved callers
         if (
