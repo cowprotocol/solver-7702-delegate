@@ -1,10 +1,8 @@
-# Contract Template
+# Solver7702Delegate
 
-Template for creating new smart contract projects.
+`Solver7702Delegate` is a minimal ERC-7702 delegation target for CoW Protocol solvers. It lets a solver keep using its existing solver EOA while allowing a fixed set of auxiliary EOAs to submit transactions through that solver EOA. The main benefit is parallel settlement submission: auxiliary EOAs provide independent nonce lanes, while downstream contracts still see the solver EOA as `msg.sender`, which keeps the authorization clean.
 
-This project is meant to be used as a templated during the creation of new Github repositories (will show in the `Create a new repository > Configuration > Start with a template` selector).
-
-It will contain some useful configuration files and scripts, that can be used also with existing projects (manually copied).
+Read more about the initiative [here](https://www.notion.so/cownation/Solver7702Delegate-Design-Doc-3588da5f04ca80a1b521c436abf17724).
 
 ## Usage
 
@@ -26,6 +24,25 @@ If specific features are needed (like PUSH0 in 0.8.20 for gas optimizations or t
 
 ```shell
 just test
+```
+
+#### Replaying Your Own Historical Transactions
+
+The fork test `test_fork_historicalTransaction_directVsDelegated_userSuppliedTxHashes` lets you replay your own batch transactions through the delegate.
+
+Set:
+
+- `FORK_RPC_URL` to the RPC URL you want Foundry to fork from.
+- `COW_HISTORICAL_TX_HASHES` to a comma-separated list of transaction hashes.
+
+The supplied transaction hashes just need to exist on that network, and the RPC must support the historical state needed by `vm.rollFork(txHash)`.
+
+Example:
+
+```shell
+FORK_RPC_URL=<your_rpc_url> \
+COW_HISTORICAL_TX_HASHES=0xabc...,0xdef... \
+just test --match-test test_fork_historicalTransaction_directVsDelegated_userSuppliedTxHashes
 ```
 
 ### Format
@@ -93,8 +110,35 @@ just snapshot
 
 ### Deploy
 
+The deploy script reads up to five approved caller addresses from `APPROVED_CALLERS`.
+If fewer than five addresses are needed, omit the rest.
+
 ```shell
-forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+export APPROVED_CALLERS=<approved_caller_0>,<approved_caller_1>
+
+just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
+  --rpc-url <your_rpc_url> \
+  --private-key <your_private_key> \
+  --broadcast
+```
+
+Deployments use `CREATE2` with a zero salt by default. To use a different salt, pass a `bytes32` value:
+
+```shell
+export SALT=<bytes32_salt>
+
+just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
+  --rpc-url <your_rpc_url> \
+  --private-key <your_private_key> \
+  --broadcast
+```
+
+To simulate the deployment and inspect the computed address, run the same command without `--broadcast`:
+
+```shell
+just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
+  --rpc-url <your_rpc_url> \
+  --private-key <your_private_key>
 ```
 
 ## New project creation checklist

@@ -3,6 +3,9 @@
   "rules": {
     "compiler-version": ["error", "^0.8"],
     "import-path-check": "off",
-    "use-natspec": "warn"
+    "use-natspec": "warn",
+    "func-visibility": ["error", { "ignoreConstructors": true }],
+    "no-complex-fallback": "off",
+    "no-inline-assembly": "off"
   }
 }
