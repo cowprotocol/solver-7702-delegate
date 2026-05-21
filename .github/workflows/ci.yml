@@ -69,7 +69,6 @@ jobs:
       contents: read
     env:
       FORK_RPC_URL: ${{ secrets.FORK_RPC_URL }}
-      BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # action v6.0.2
         with:

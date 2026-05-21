@@ -6,7 +6,6 @@ import {BaseTest} from "test/BaseTest.t.sol";
 
 contract Solver7702DelegateForkTest is BaseTest {
     string internal constant FORK_RPC_ENV = "FORK_RPC_URL";
-    string internal constant BASE_RPC_ENV = "BASE_RPC_URL";
     bytes internal constant EIP7702_DELEGATION_PREFIX = hex"ef0100";
 
     Solver7702Delegate internal delegateContract;
@@ -101,12 +100,12 @@ contract Solver7702DelegateForkTest is BaseTest {
         );
     }
 
-    function test_fork_historicalTransaction_directVsDelegated_bridgeOrder() public {
+    function test_fork_historicalTransaction_directVsDelegated_swapAndBridgeOrder() public {
         _runHistoricalTransaction(
             HistoricalTransaction({
-                label: "bridge order",
-                rpcEnv: BASE_RPC_ENV,
-                txHash: 0xc3080dc5c7852550ce99d2122887e2a26f9c4d5cc0ba2152cef77a8878f6c45a
+                label: "swap and bridge order",
+                rpcEnv: FORK_RPC_ENV,
+                txHash: 0x8ae3eb67c27049b57f4abf5bc5ee83b0f0a928d1f3bb79fbdfdf5876b7a93425
             }),
             true
         );
