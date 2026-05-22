@@ -4,6 +4,45 @@
 
 Read more about the initiative [here](https://www.notion.so/cownation/Solver7702Delegate-Design-Doc-3588da5f04ca80a1b521c436abf17724).
 
+## How it works
+
+Direct settlement submission:
+
+```text
+from = solver EOA
+to   = GPv2Settlement
+data = GPv2Settlement.settle(...)
+```
+
+Delegated ERC-7702 settlement submission:
+
+```text
+from = auxiliary EOA
+to   = solver EOA
+data = bytes20(target) || targetCalldata
+```
+
+For a settlement:
+
+```text
+target         = GPv2Settlement
+targetCalldata = GPv2Settlement.settle(...)
+```
+
+Inside the delegate, `msg.sender` is the auxiliary EOA and `address(this)` is the solver EOA. Inside `GPv2Settlement`, `msg.sender` is still the solver EOA.
+
+The calldata format is packed on purpose. Use `abi.encodePacked(bytes20(target), targetCalldata)`. Do not use `abi.encode(target, targetCalldata)`.
+
+## Security model
+
+Approved auxiliary EOAs are trusted hot keys.
+
+An approved auxiliary EOA can make arbitrary calls from the solver EOA context. This can move ETH or tokens held by the solver EOA, set approvals, or call other contracts.
+
+Keep solver EOA balances and approvals minimal. Do not share auxiliary EOAs across solvers. Monitor auxiliary keys and rotate them immediately if one is compromised.
+
+Changing the auxiliary caller set requires deploying a new `Solver7702Delegate` and updating the solver EOA's ERC-7702 delegation.
+
 ## Usage
 
 ### Just commands
@@ -141,33 +180,100 @@ just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate
   --private-key <your_private_key>
 ```
 
-## New project creation checklist
+## Add delegation
 
-The following operations need to be performed after this repository has been created.
+After deploying the delegate, the solver EOA must sign an ERC-7702 authorization for the delegate address.
 
-- [ ] Discuss and confirm the project license with the team lead before starting implementation work. You must set this up before writing project code.
-  - [ ] The license is very likely going to be one of the following:
-    - [ ] `MIT OR Apache-2.0` for projects with low strategic relevance (included by default in the template).
-    - [ ] `LGPL-3.0-or-later` for projects with high strategic relevance.
-    - [ ] In some cases, a different license may be needed.
-  - [ ] If it's `MIT OR Apache-2.0`, the license is already included. Otherwise, remove the existing license files and add the selected license as a file in the repository root.
-  - [ ] Update `dev/package.json` with the selected license.
-  - [ ] Update each Solidity smart contract's `SPDX-License-Identifier` with the selected license.
-- [ ] In GitHub repo settings:
-  - [ ] Add a new ruleset called "Protected branches" and include the following changes:
-    - Enforcement status: active
-    - Target branches: Include default branch
-    - Require linear history
-    - Require a pull request before merging
-      - Required approvals: 1
-      - Allowed merge methods: Squash
-    - Block force pushes
-  - [ ] In General → Features → Pull requests:
-    - Select "Pull request title and description" in "Default commit message" option
-    - Unckeck "Allow merge commits" option
-    - Check "Allow auto-merge" option
-- [ ] Run `forge install` to install the dependencies. This will create a new `foundry.lock` file which you should commit to the project
-- [ ] Set up [Local tooling](#local-tooling) so Solhint and Slither use the pinned project versions
-- [ ] Update the project details in `dev/package.json`, including `name` and `description`
-- [ ] Make sure you use the [latest version of Solidity](https://github.com/argotorg/solidity/releases) by updating the `solc` version in `foundry.toml`
-- [ ] Once all entries in this list are checked, delete this section from the readme
+Sign the authorization:
+
+```shell
+cast wallet sign-auth <delegate_address> \
+  --private-key <solver_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id>
+```
+
+Submit a zero-value transaction with the signed authorization:
+
+```shell
+cast send 0x0000000000000000000000000000000000000000 \
+  --auth <signed_authorization> \
+  --private-key <transaction_sender_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id>
+```
+
+## Verify delegation
+
+Check the solver EOA code:
+
+```shell
+cast code <solver_eoa> --rpc-url <rpc_url>
+```
+
+For ERC-7702 delegation, the code should be:
+
+```text
+0xef0100 || delegate_address
+```
+
+Also verify the deployed delegate runtime bytecode against the expected artifact and approved caller set. The approved callers are immutable values, so each caller set can produce different runtime bytecode.
+
+## Submit through the delegate
+
+Auxiliary EOAs submit calls to the solver EOA. The calldata must be:
+
+```text
+bytes20(target) || targetCalldata
+```
+
+For settlements, `target` is `GPv2Settlement` and `targetCalldata` is the normal `settle(...)` calldata.
+
+Simulate the exact delegated transaction shape before submitting:
+
+```text
+from = auxiliary EOA
+to   = solver EOA
+data = bytes20(GPv2Settlement) || GPv2Settlement.settle(...)
+```
+
+## Replace callers
+
+Approved callers cannot be changed in place.
+
+To replace one or more auxiliary EOAs:
+
+1. Deploy a new `Solver7702Delegate` with the new caller set.
+2. Have the solver EOA sign a new ERC-7702 authorization for the new delegate.
+3. Submit the authorization transaction.
+4. Verify that the solver EOA now delegates to the new delegate.
+5. Verify the new delegate bytecode.
+
+The old delegate contract remains on-chain, but it has no power unless a solver EOA delegates to it.
+
+## Revoke delegation
+
+To clear delegation, have the solver EOA sign an ERC-7702 authorization to the zero address:
+
+```shell
+cast wallet sign-auth 0x0000000000000000000000000000000000000000 \
+  --private-key <solver_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id>
+```
+
+Then submit a zero-value transaction with the signed authorization:
+
+```shell
+cast send 0x0000000000000000000000000000000000000000 \
+  --auth <signed_authorization> \
+  --private-key <transaction_sender_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id>
+```
+
+Then verify that `cast code <solver_eoa>` is empty or no longer points to a delegate.
+
+## More docs
+
+The fuller external solver guide is available at https://docs.cow.fi/cow-protocol/tutorials/solvers/solver-7702-delegate
