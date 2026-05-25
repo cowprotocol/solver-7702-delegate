@@ -180,11 +180,13 @@ just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate
   --private-key <your_private_key>
 ```
 
+This is only a dry run. It prints the address that would be used, but it does not deploy the contract.
+
 ## Add delegation
 
 After deploying the delegate, the solver EOA must sign an ERC-7702 authorization for the delegate address.
 
-Sign the authorization:
+If a different funded EOA submits the authorization transaction, sign the authorization like this:
 
 ```shell
 cast wallet sign-auth <delegate_address> \
@@ -202,6 +204,28 @@ cast send 0x0000000000000000000000000000000000000000 \
   --rpc-url <rpc_url> \
   --chain <chain_id>
 ```
+
+If the solver EOA submits its own authorization transaction, add `--self-broadcast` when signing:
+
+```shell
+cast wallet sign-auth <delegate_address> \
+  --private-key <solver_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id> \
+  --self-broadcast
+```
+
+Then submit the transaction with the solver private key:
+
+```shell
+cast send 0x0000000000000000000000000000000000000000 \
+  --auth <signed_authorization> \
+  --private-key <solver_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id>
+```
+
+Without `--self-broadcast`, the transaction can succeed while the authorization is not applied, and `cast code <solver_eoa>` will still return `0x`.
 
 ## Verify delegation
 
@@ -261,6 +285,8 @@ cast wallet sign-auth 0x0000000000000000000000000000000000000000 \
   --rpc-url <rpc_url> \
   --chain <chain_id>
 ```
+
+If the solver EOA submits its own revoke transaction, add `--self-broadcast` here too.
 
 Then submit a zero-value transaction with the signed authorization:
 
