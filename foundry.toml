@@ -4,6 +4,8 @@ out = "out"
 libs = ["lib"]
 solc = "0.8.34" # See latest release at: https://github.com/argotorg/solidity/releases
 isolate = true
+optimizer = true
+optimizer_runs = 1000000
 
 [fmt]
 sort_imports = true
