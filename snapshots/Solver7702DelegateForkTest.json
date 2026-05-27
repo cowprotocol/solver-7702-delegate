@@ -1,4 +1,18 @@
 {
-  "historical tx - swap and bridge order - delegated call": "949703",
+  "historical tx - USDC permit to MOG - delegated call": "426600",
+  "historical tx - USDC permit to MOG - direct call": "422548",
+  "historical tx - USDC to EURA - delegated call": "234623",
+  "historical tx - USDC to EURA - direct call": "228238",
+  "historical tx - USDT to AAVE - delegated call": "751998",
+  "historical tx - USDT to AAVE - direct call": "747672",
+  "historical tx - WETH to USDC - delegated call": "293676",
+  "historical tx - WETH to USDC - direct call": "289777",
+  "historical tx - YFI to USDC - delegated call": "780486",
+  "historical tx - YFI to USDC - direct call": "773300",
+  "historical tx - flashloan order - delegated call": "1310933",
+  "historical tx - flashloan order - direct call": "1306374",
+  "historical tx - flashloan wrapper order - delegated call": "938147",
+  "historical tx - flashloan wrapper order - direct call": "933772",
+  "historical tx - swap and bridge order - delegated call": "949549",
   "historical tx - swap and bridge order - direct call": "945548"
 }

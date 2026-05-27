@@ -1,11 +1,11 @@
 {
-  "approved caller empty target payload - success - forwards": "24507",
+  "approved caller empty target payload - success - forwards": "24353",
   "approved caller short calldata - success - receives ETH": "21760",
   "approved caller short calldata - success - returns empty": "21760",
-  "approved caller target empty revert - reverts - bubbles empty data": "24861",
-  "approved caller target payload - success - forwards": "31258",
-  "approved caller target return data - success - bubbles return data": "25069",
-  "approved caller target revert data - reverts - bubbles non-empty data": "25738",
-  "unauthorized caller - success - receives ETH": "21232",
+  "approved caller target empty revert - reverts - bubbles empty data": "24707",
+  "approved caller target payload - success - forwards": "31104",
+  "approved caller target return data - success - bubbles return data": "24915",
+  "approved caller target revert data - reverts - bubbles non-empty data": "25584",
+  "unauthorized caller - success - receives ETH": "21199",
   "unauthorized caller no value - reverts - unauthorized": "21930"
 }
