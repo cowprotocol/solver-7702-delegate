@@ -43,7 +43,7 @@ contract Solver7702Delegate {
         ) return _callThrough();
 
         // Accept ETH from anyone, even if unauthorized
-        if (msg.value > 0) return;
+        if (msg.value > 0 || msg.sender == address(this)) return;
         revert Unauthorized(msg.sender);
     }
 
