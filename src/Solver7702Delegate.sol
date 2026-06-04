@@ -55,8 +55,9 @@ contract Solver7702Delegate {
         address target = address(bytes20(msg.data[0:20]));
 
         assembly {
-            // Extract calldata in range (target, len(msg.data)). For efficiency and simplicity, we overwrite from memory position 0 (the solidity scratch pad).
-            // If `calldatasize()` is larger than 84, the Solidity free memory pointer and "zero" slot may also be overwritten with arbitrary data.
+            // Extract calldata in range (target, len(msg.data)). For efficiency and simplicity, we overwrite from
+            // memory position 0 (the solidity scratch pad). If `calldatasize()` is larger than 84, the Solidity free
+            // memory pointer and "zero" slot may also be overwritten with arbitrary data.
             // Since we do not return to Solidity code, this is not a problem.
             calldatacopy(0x00, 20, sub(calldatasize(), 20))
 
