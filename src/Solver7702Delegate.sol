@@ -43,10 +43,11 @@ contract Solver7702Delegate {
         ) return _callThrough();
 
         // Accept ETH from anyone, even if unauthorized
-        // We do this to preserve the behavior of an EOA address (which doesn't revert when ETH is sent) as much as reasonably possible. 
-        // As it is unlikely that a contract will treat a solver address as a contract and simultaneously send ETH, this should be reasonbly safe.
-        // We also return gracefully on calls to self to prevent compatibility errors with existing solvers that expect to be able to cancel
-        // their transaction by call to self.
+        // We do this to preserve the behavior of an EOA address (which doesn't revert when ETH is sent) as much as
+        // reasonably possible. As it is unlikely that a contract will treat a solver address as a contract and
+        // simultaneously send ETH, this should be reasonbly safe.
+        // We also return gracefully on calls to self to prevent compatibility errors with existing solvers that expect
+        // to be able to cancel their transaction by call to self.
         if (msg.value > 0 || msg.sender == address(this)) return;
         revert Unauthorized(msg.sender);
     }
