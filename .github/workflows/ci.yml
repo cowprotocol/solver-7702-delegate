@@ -69,6 +69,7 @@ jobs:
       contents: read
     env:
       FORK_RPC_URL: ${{ secrets.FORK_RPC_URL }}
+      FOUNDRY_PROFILE: test
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # action v6.0.2
         with:
@@ -76,6 +77,6 @@ jobs:
           submodules: recursive
       - uses: ./.github/actions/setup
       - name: Test
-        run: FOUNDRY_PROFILE=test forge test -vvv --show-progress --gas-snapshot-check true
+        run: forge test -vvv --show-progress --gas-snapshot-check true
       - name: Coverage
         run: just coverage-check
