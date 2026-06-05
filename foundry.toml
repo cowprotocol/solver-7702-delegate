@@ -6,12 +6,14 @@ solc = "0.8.34" # See latest release at: https://github.com/argotorg/solidity/re
 isolate = true
 optimizer = true
 optimizer_runs = 1000000
-ffi = true
 
 [fmt]
 sort_imports = true
 number_underscore = "thousands"
 wrap_comments = true
+
+[profile.test]
+ffi = true
 
 [profile.ci]
 deny = "warnings" # Why not always: sometimes you just want to code and see what comes out

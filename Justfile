@@ -39,7 +39,7 @@ slither:
 
 # Run tests
 test:
-    forge test -vvv --show-progress
+    FOUNDRY_PROFILE=test forge test -vvv --show-progress
 
 # Print coverage summary
 coverage-summary:
