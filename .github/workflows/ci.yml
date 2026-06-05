@@ -76,6 +76,6 @@ jobs:
           submodules: recursive
       - uses: ./.github/actions/setup
       - name: Test
-        run: forge test -vvv --show-progress --gas-snapshot-check true
+        run: FOUNDRY_PROFILE=test forge test -vvv --show-progress --gas-snapshot-check true
       - name: Coverage
         run: just coverage-check
