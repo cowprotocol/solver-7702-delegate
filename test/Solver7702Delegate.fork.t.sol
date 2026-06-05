@@ -201,7 +201,7 @@ contract Solver7702DelegateForkTest is BaseTest {
         cmd[0] = "cast";
         cmd[1] = "rpc";
         cmd[2] = "eth_getTransactionByHash";
-        cmd[3] = string.concat('"', vm.toString(txHash), '"');
+        cmd[3] = vm.toString(txHash);
         cmd[4] = string.concat("--rpc-url=", vm.envString(FORK_RPC_ENV));
         string memory json = string(vm.ffi(cmd));
 
