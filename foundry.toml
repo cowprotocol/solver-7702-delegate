@@ -6,6 +6,7 @@ solc = "0.8.34" # See latest release at: https://github.com/argotorg/solidity/re
 isolate = true
 optimizer = true
 optimizer_runs = 1000000
+ffi = true
 
 [fmt]
 sort_imports = true

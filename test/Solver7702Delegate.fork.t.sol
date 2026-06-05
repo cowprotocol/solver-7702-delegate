@@ -197,56 +197,17 @@ contract Solver7702DelegateForkTest is BaseTest {
     }
 
     function _historicalTargetAndCalldata(bytes32 txHash) internal returns (HistoricalCall memory hc) {
-        bytes memory data = vm.rpc("eth_getTransactionByHash", string.concat("[\"", vm.toString(txHash), "\"]"));
-        uint256 tupleStart = _readUint(data, 0);
-        uint256 fromOffset = 0x80;
-        uint256 toOffset = 0x1c0;
-        uint256 valueOffset = 0x240;
-        uint256 inputOffsetOffset = 0x100;
+        string[] memory cmd = new string[](5);
+        cmd[0] = "cast";
+        cmd[1] = "rpc";
+        cmd[2] = "eth_getTransactionByHash";
+        cmd[3] = string.concat('"', vm.toString(txHash), '"');
+        cmd[4] = string.concat("--rpc-url=", vm.envString(FORK_RPC_ENV));
+        string memory json = string(vm.ffi(cmd));
 
-        hc.originalSolver = _readAddress(data, tupleStart + fromOffset);
-        if (hc.originalSolver == address(0)) {
-            fromOffset = 0xa0;
-            toOffset = 0x1e0;
-            valueOffset = 0x260;
-            inputOffsetOffset = 0x120;
-            hc.originalSolver = _readAddress(data, tupleStart + fromOffset);
-        }
-
-        hc.target = _readAddress(data, tupleStart + toOffset);
-        hc.value = _readDynamicUint(data, tupleStart, valueOffset);
-        uint256 inputOffset = _readUint(data, tupleStart + inputOffsetOffset);
-        uint256 inputStart = tupleStart + inputOffset;
-        hc.payload = _readBytes(data, inputStart);
-    }
-
-    function _readAddress(bytes memory data, uint256 offset) internal pure returns (address value) {
-        value = address(uint160(_readUint(data, offset)));
-    }
-
-    function _readUint(bytes memory data, uint256 offset) internal pure returns (uint256 value) {
-        for (uint256 i; i < 32; ++i) {
-            value = (value << 8) | uint8(data[offset + i]);
-        }
-    }
-
-    function _readDynamicUint(bytes memory data, uint256 tupleStart, uint256 offset)
-        internal
-        pure
-        returns (uint256 value)
-    {
-        uint256 valueStart = tupleStart + _readUint(data, tupleStart + offset);
-        uint256 length = _readUint(data, valueStart);
-        for (uint256 i; i < length; ++i) {
-            value = (value << 8) | uint8(data[valueStart + 32 + i]);
-        }
-    }
-
-    function _readBytes(bytes memory data, uint256 offset) internal pure returns (bytes memory value) {
-        uint256 length = _readUint(data, offset);
-        value = new bytes(length);
-        for (uint256 i; i < length; ++i) {
-            value[i] = data[offset + 32 + i];
-        }
+        hc.originalSolver = vm.parseJsonAddress(json, ".from");
+        hc.target = vm.parseJsonAddress(json, ".to");
+        hc.value = vm.parseJsonUint(json, ".value");
+        hc.payload = vm.parseJsonBytes(json, ".input");
     }
 }
