@@ -121,6 +121,18 @@ contract Solver7702DelegateTest is BaseTest {
         assertEq(returnData, expectedReturnData, "target return data should bubble");
     }
 
+    function test_unit_fallback_success_selfCallDoesNotRevert() public {
+        bytes memory payload = hex"12345678";
+
+        vm.prank(address(delegateContract));
+        (bool success, bytes memory returnData) =
+            address(delegateContract).call(_packedCalldata(fallbackTarget, payload));
+        vm.snapshotGasLastCall("self call no value - success - bypasses auth");
+
+        assertTrue(success, "self call should succeed");
+        assertEq(returnData.length, 0, "self call should return empty response");
+    }
+
     function test_unit_fallback_revertsWith_UnauthorizedCaller() public {
         bytes memory payload = hex"12345678";
 

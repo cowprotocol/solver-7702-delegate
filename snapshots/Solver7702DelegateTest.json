@@ -6,6 +6,7 @@
   "approved caller target payload - success - forwards": "31104",
   "approved caller target return data - success - bubbles return data": "24915",
   "approved caller target revert data - reverts - bubbles non-empty data": "25584",
-  "unauthorized caller - success - receives ETH": "21199",
+  "self call no value - success - bypasses auth": "21930",
+  "unauthorized caller - success - receives ETH": "21221",
   "unauthorized caller no value - reverts - unauthorized": "21930"
 }
