@@ -43,7 +43,12 @@ contract Solver7702Delegate {
         ) return _callThrough();
 
         // Accept ETH from anyone, even if unauthorized
-        if (msg.value > 0) return;
+        // We do this to preserve the behavior of an EOA address (which doesn't revert when ETH is sent) as much as
+        // reasonably possible. As it is unlikely that a contract will treat a solver address as a contract and
+        // simultaneously send ETH, this should be reasonbly safe.
+        // We also return gracefully on calls to self to prevent compatibility errors with existing solvers that expect
+        // to be able to cancel their transaction by call to self.
+        if (msg.value > 0 || msg.sender == address(this)) return;
         revert Unauthorized(msg.sender);
     }
 
@@ -55,9 +60,10 @@ contract Solver7702Delegate {
         address target = address(bytes20(msg.data[0:20]));
 
         assembly {
-            // Extract calldata in range (target, len(msg.data)).
-            // We take full control of memory in this inline assembly block because it will not return to Solidity code.
-            // This is why we overwrite the Solidity scratch pad at memory position 0.
+            // Extract calldata in range (target, len(msg.data)). For efficiency and simplicity, we overwrite from
+            // memory position 0 (the solidity scratch pad). If `calldatasize()` is larger than 84, the Solidity free
+            // memory pointer and "zero" slot may also be overwritten with arbitrary data.
+            // Since we do not return to Solidity code, this is not a problem.
             calldatacopy(0x00, 20, sub(calldatasize(), 20))
 
             // Call the implementation
