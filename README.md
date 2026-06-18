@@ -1,23 +1,24 @@
 # Solver7702Delegate
 
-`Solver7702Delegate` is a minimal ERC-7702 delegation target for CoW Protocol solvers. It lets a solver keep using its existing solver EOA while allowing a fixed set of auxiliary EOAs to submit transactions through that solver EOA. The main benefit is parallel settlement submission: auxiliary EOAs provide independent nonce lanes, while downstream contracts still see the solver EOA as `msg.sender`.
+`Solver7702Delegate` is a minimal ERC-7702 delegation target for CoW Protocol solvers. It enables parallel settlement submission through auxiliary EOAs without changing the allowlisted solver identity.
 
-Read more about the initiative [here](https://www.notion.so/cownation/Solver7702Delegate-Design-Doc-3588da5f04ca80a1b521c436abf17724).
+## Usage
 
-**Important:** approved auxiliary EOAs are trusted hot keys. They can make arbitrary calls as the solver EOA, so keep solver EOA balances and approvals minimal.
+> [!WARNING]
+> Approved auxiliary EOAs are trusted hot keys. They can make arbitrary calls as the solver EOA, so keep solver EOA balances and approvals minimal.
 
-## How it works
+### How it works
 
-Direct submission is still valid and should be used when the solver EOA is free. Delegated submission is useful when the solver EOA already has a pending settlement and another settlement should be submitted through a different nonce lane.
+Use direct submission while the solver EOA is free. If it already has a pending transaction, an auxiliary EOA can submit through a separate nonce lane.
 
 ```mermaid
 flowchart LR
     SolverEOA{"Solver EOA"}
-    DirectTx[/"tx.from = solver EOA<br/>tx.to = GPv2Settlement<br/>tx.data = GPv2Settlement.settle(...)"/]
-    AuxEOAs{"Auxiliary EOAs 0...N"}
-    DelegatedTx[/"tx.from = auxiliary EOA<br/>tx.to = solver EOA<br/>tx.data = bytes20(target) || targetCalldata"/]
-    DelegatedSolver["Solver EOA running Solver7702Delegate"]
-    TargetCall[/"target = GPv2Settlement<br/>targetCalldata = GPv2Settlement.settle(...)"/]
+    DirectTx["tx.data = settle(...)"]
+    AuxEOAs{"Auxiliary EOAs<br/>0...N"}
+    DelegatedTx["tx.data = bytes20(target)<br/>|| targetCalldata"]
+    DelegatedSolver["Solver EOA<br/>delegated to Solver7702Delegate"]
+    TargetCall["target = GPv2Settlement<br/>targetCalldata = settle(...)"]
     Settlement["GPv2Settlement"]
 
     SolverEOA --> DirectTx --> Settlement
@@ -31,19 +32,11 @@ flowchart LR
     class DelegatedSolver,Settlement contract
 ```
 
-Inside the `Solver7702Delegate`, `msg.sender` is the auxiliary EOA and `address(this)` is the solver EOA. However, once the call reaches `GPv2Settlement`, `msg.sender` is still the solver EOA.
+The auxiliary EOA sends the transaction to the solver EOA, not to the delegate contract. The solver EOA's ERC-7702 delegation runs `Solver7702Delegate` at the solver EOA address.
 
-The calldata format is packed on purpose. Use `abi.encodePacked(bytes20(target), targetCalldata)`. Do not use `abi.encode(target, targetCalldata)`.
+Inside `Solver7702Delegate`, `msg.sender` is the auxiliary EOA and `address(this)` is the solver EOA. Inside `GPv2Settlement`, `msg.sender` is still the solver EOA.
 
-## Security considerations
-
-An approved auxiliary EOA can make arbitrary calls as the solver EOA. This can move ETH or tokens held by the solver EOA, set approvals, or call other contracts.
-
-Do not share auxiliary EOAs across solvers. Monitor auxiliary keys and rotate them immediately if one is compromised.
-
-Changing the auxiliary caller set requires deploying a new `Solver7702Delegate` and updating the solver EOA's ERC-7702 delegation.
-
-## Operator setup
+The delegate expects packed calldata: `abi.encodePacked(bytes20(target), targetCalldata)`. Do not use `abi.encode(target, targetCalldata)`.
 
 ### Deploy
 
@@ -52,60 +45,38 @@ The deploy script reads up to five approved caller addresses from `APPROVED_CALL
 ```shell
 export APPROVED_CALLERS=<approved_caller_0>,<approved_caller_1>
 
-just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
-  --rpc-url <your_rpc_url> \
-  --private-key <your_private_key> \
-  --broadcast
-```
-
-Deployments use `CREATE2` with a zero salt by default. To use a different salt, pass a `bytes32` value:
-
-```shell
-export SALT=<bytes32_salt>
-
-just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
-  --rpc-url <your_rpc_url> \
-  --private-key <your_private_key> \
-  --broadcast
-```
-
-To simulate the deployment and inspect the computed address, run the same command without `--broadcast`:
-
-```shell
-just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
+forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
   --rpc-url <your_rpc_url> \
   --private-key <your_private_key>
 ```
 
-This is only a dry run. It prints the address that would be used, but it does not deploy the contract.
+This command performs a dry run. Review the result, then run it again with `--broadcast` to deploy the contract.
 
-### Add delegation
+Deployments use `CREATE2` with a zero salt by default. To use a different salt, set `SALT` before running the deploy command:
 
-After deploying the delegate, the solver EOA must sign an ERC-7702 authorization for the delegate address.
+```shell
+export SALT=<bytes32_salt>
+```
 
-The transaction that carries the authorization can be submitted by any funded account. `<signed_authorization>` below is the output from the previous `cast wallet sign-auth` command.
+### Add or replace delegation
 
-The examples use `--private-key`, but you can use any wallet signing option supported by your `cast` version, such as a keystore, hardware wallet, or cloud KMS signer. Run `cast wallet sign-auth --help` for the exact options available in your local Foundry version.
+After deployment, the solver EOA must authorize the delegate address.
+
+The examples use `--private-key`, but `cast` also supports keystores, hardware wallets, and cloud KMS signers. Run `cast wallet sign-auth --help` to see the options supported by your Foundry version.
 
 **Use `--self-broadcast` only when the solver EOA signs the authorization and also sends the transaction.**
 
-#### Authorization sent by the solver EOA
-
-Use `--self-broadcast` when signing:
+When the solver EOA both signs the authorization and sends the transaction:
 
 ```shell
-cast wallet sign-auth <delegate_address> \
+signed_auth=$(cast wallet sign-auth <delegate_address> \
   --private-key <solver_private_key> \
   --rpc-url <rpc_url> \
   --chain <chain_id> \
-  --self-broadcast
-```
+  --self-broadcast)
 
-Then submit the transaction from the solver EOA:
-
-```shell
 cast send 0x0000000000000000000000000000000000000000 \
-  --auth <signed_authorization> \
+  --auth ${signed_auth} \
   --private-key <solver_private_key> \
   --rpc-url <rpc_url> \
   --chain <chain_id>
@@ -113,26 +84,7 @@ cast send 0x0000000000000000000000000000000000000000 \
 
 **If the solver EOA sends the transaction and the authorization was signed without `--self-broadcast`, the transaction can succeed while the authorization is not applied.** In that case, `cast code <solver_eoa>` will still return `0x`.
 
-#### Authorization sent by a different funded account
-
-Do not use `--self-broadcast` in this case:
-
-```shell
-cast wallet sign-auth <delegate_address> \
-  --private-key <solver_private_key> \
-  --rpc-url <rpc_url> \
-  --chain <chain_id>
-```
-
-Then submit a zero-value transaction with the signed authorization:
-
-```shell
-cast send 0x0000000000000000000000000000000000000000 \
-  --auth <signed_authorization> \
-  --private-key <transaction_sender_private_key> \
-  --rpc-url <rpc_url> \
-  --chain <chain_id>
-```
+If another funded account sends the authorization transaction, the solver EOA still needs to sign the authorization. Omit `--self-broadcast`, then pass the sender's key to `cast send` as `--private-key <transaction_sender_private_key>`.
 
 ### Verify delegation
 
@@ -148,70 +100,52 @@ For ERC-7702 delegation, the code should be:
 0xef0100 || delegate_address
 ```
 
-Also verify the deployed delegate runtime bytecode against the expected artifact and approved caller set. The approved callers are immutable values, so each caller set can produce different runtime bytecode.
+On a block explorer:
 
-### Submit through the delegate
+1. Open the solver EOA. It may not have a normal contract code view. Confirm that its **Delegated to** banner points to the expected delegate address.
+2. Open the linked delegate address. Its **Contract** or **Code** tab must show verified source code that matches [`Solver7702Delegate`](./src/Solver7702Delegate.sol).
+3. Under **Constructor Arguments**, decode `approvedCallers` as `address[5]` and compare all five entries with the intended auxiliary EOAs. Unused entries should be the zero address.
 
-Auxiliary EOAs submit calls to the solver EOA. The calldata must be:
+You can also open the delegation transaction and check its **Authorizations** tab. It should identify the solver EOA, the expected delegated address, and a valid authorization.
 
-```text
-bytes20(target) || targetCalldata
-```
+### Send a delegated call manually
 
-For settlements, `target` is `GPv2Settlement` and `targetCalldata` is the normal `settle(...)` calldata.
+The reference driver sends delegated calls automatically. Use this command only for manual testing or a custom integration:
 
-Simulate the exact delegated transaction shape before submitting:
-
-```text
-from = auxiliary EOA
-to   = solver EOA
-data = bytes20(GPv2Settlement) || GPv2Settlement.settle(...)
+```shell
+cast send <solver_eoa> $(cast concat-hex <target_address> <original_call_data>) \
+  --private-key <auxiliary_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id>
 ```
 
 ### Replace callers
 
-Approved callers cannot be changed in place. If you need to change any authorized auxiliary account, re-do the [deploy process](#deploy) with the new caller set and then [add delegation](#add-delegation) again.
+The caller set is immutable. To change it, repeat the [deploy process](#deploy) with the new callers, then [authorize the new delegate](#add-or-replace-delegation).
 
-The old delegate contract remains on-chain, but it has no power unless a solver EOA delegates to it.
+The old contract remains on-chain but has no power over the solver EOA once delegation points to the new contract.
 
 ### Revoke delegation
 
-To clear delegation, have the solver EOA sign an ERC-7702 authorization to the zero address.
+To stop using the current delegate, have the solver EOA authorize the zero address.
 
-**Use the same [`--self-broadcast` rule](#add-delegation) as when adding delegation: add it only when the solver EOA signs and sends the revoke transaction.**
-
-If the solver EOA submits its own revoke transaction, add `--self-broadcast`:
+Use the same [`--self-broadcast` rule](#add-or-replace-delegation) as when adding delegation.
 
 ```shell
-cast wallet sign-auth 0x0000000000000000000000000000000000000000 \
+signed_auth=$(cast wallet sign-auth 0x0000000000000000000000000000000000000000 \
   --private-key <solver_private_key> \
   --rpc-url <rpc_url> \
   --chain <chain_id> \
-  --self-broadcast
+  --self-broadcast)
 
 cast send 0x0000000000000000000000000000000000000000 \
-  --auth <signed_authorization> \
+  --auth ${signed_auth} \
   --private-key <solver_private_key> \
   --rpc-url <rpc_url> \
   --chain <chain_id>
 ```
 
-If a different funded account submits the revoke transaction, do not use `--self-broadcast`:
-
-```shell
-cast wallet sign-auth 0x0000000000000000000000000000000000000000 \
-  --private-key <solver_private_key> \
-  --rpc-url <rpc_url> \
-  --chain <chain_id>
-
-cast send 0x0000000000000000000000000000000000000000 \
-  --auth <signed_authorization> \
-  --private-key <transaction_sender_private_key> \
-  --rpc-url <rpc_url> \
-  --chain <chain_id>
-```
-
-Then verify that `cast code <solver_eoa>` no longer points to the previous delegate. Revoking to the zero address does not necessarily return the account to empty code; it can leave the account delegated to the zero address.
+Then verify that `cast code <solver_eoa>` no longer points to the previous delegate, using the [same verification method as before](#verify-delegation).
 
 ## Development
 
