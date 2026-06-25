@@ -1,21 +1,33 @@
 # Solver7702Delegate
 
-`Solver7702Delegate` is a minimal ERC-7702 delegation target for CoW Protocol solvers. It enables parallel settlement submission through auxiliary EOAs without changing the allowlisted solver identity.
+`Solver7702Delegate` is a minimal ERC-7702 delegation target for CoW Protocol solvers. It enables parallel settlement submission through auxiliary accounts without changing the allowlisted solver identity.
 
 ## Usage
 
 > [!WARNING]
-> Approved auxiliary EOAs are trusted hot keys. They can make arbitrary calls as the solver EOA, so keep solver EOA balances and approvals minimal.
+> Auxiliary accounts can make arbitrary calls as the solver EOA, including CoW Protocol settlements. Secure them with the same care as the solver EOA.
+
+For driver configuration and solver-facing setup, see the [parallel settlement submission guide](https://docs.cow.fi/cow-protocol/tutorials/solvers/solver-7702-delegate).
+
+Basic flow:
+
+1. Choose up to five auxiliary accounts that can submit for the solver EOA.
+2. Deploy `Solver7702Delegate` with those accounts as approved callers.
+3. Authorize the delegate from the solver EOA.
+4. Keep sending settlements from the solver EOA when it is free.
+5. If the solver EOA has a pending transaction, send the next settlement from an auxiliary account.
 
 ### How it works
 
-Use direct submission while the solver EOA is free. If it already has a pending transaction, an auxiliary EOA can submit through a separate nonce lane.
+Each auxiliary account has its own nonce. This lets several settlements be submitted at the same time and mined in any order.
+
+Use direct submission while the solver EOA is free. If it already has a pending transaction, an auxiliary account can submit through its own nonce lane.
 
 ```mermaid
 flowchart LR
     SolverEOA{"Solver EOA"}
     DirectTx["tx.data = settle(...)"]
-    AuxEOAs{"Auxiliary EOAs<br/>0...N"}
+    AuxEOAs{"Auxiliary accounts<br/>0...N"}
     DelegatedTx["tx.data = bytes20(target)<br/>|| targetCalldata"]
     DelegatedSolver["Solver EOA<br/>delegated to Solver7702Delegate"]
     TargetCall["target = GPv2Settlement<br/>targetCalldata = settle(...)"]
@@ -32,9 +44,9 @@ flowchart LR
     class DelegatedSolver,Settlement contract
 ```
 
-The auxiliary EOA sends the transaction to the solver EOA, not to the delegate contract. The solver EOA's ERC-7702 delegation runs `Solver7702Delegate` at the solver EOA address.
+The auxiliary account sends the transaction to the solver EOA, not to the delegate contract. The solver EOA's ERC-7702 delegation runs `Solver7702Delegate` at the solver EOA address.
 
-Inside `Solver7702Delegate`, `msg.sender` is the auxiliary EOA and `address(this)` is the solver EOA. Inside `GPv2Settlement`, `msg.sender` is still the solver EOA.
+Inside `Solver7702Delegate`, `msg.sender` is the auxiliary account and `address(this)` is the solver EOA. Inside `GPv2Settlement`, `msg.sender` is still the solver EOA.
 
 The delegate expects packed calldata: `abi.encodePacked(bytes20(target), targetCalldata)`. Do not use `abi.encode(target, targetCalldata)`.
 
@@ -104,7 +116,7 @@ On a block explorer:
 
 1. Open the solver EOA. It may not have a normal contract code view. Confirm that its **Delegated to** banner points to the expected delegate address.
 2. Open the linked delegate address. Its **Contract** or **Code** tab must show verified source code that matches [`Solver7702Delegate`](./src/Solver7702Delegate.sol).
-3. Under **Constructor Arguments**, decode `approvedCallers` as `address[5]` and compare all five entries with the intended auxiliary EOAs. Unused entries should be the zero address.
+3. Under **Constructor Arguments**, decode `approvedCallers` as `address[5]` and compare all five entries with the intended auxiliary accounts. Unused entries should be the zero address.
 
 You can also open the delegation transaction and check its **Authorizations** tab. It should identify the solver EOA, the expected delegated address, and a valid authorization.
 
@@ -121,7 +133,7 @@ cast send <solver_eoa> $(cast concat-hex <target_address> <original_call_data>) 
 
 ### Replace callers
 
-The caller set is immutable. To change it, repeat the [deploy process](#deploy) with the new callers, then [authorize the new delegate](#add-or-replace-delegation).
+The caller set is immutable. To change callers, repeat the [deploy process](#deploy) with the new callers, then [authorize the new delegate](#add-or-replace-delegation).
 
 The old contract remains on-chain but has no power over the solver EOA once delegation points to the new contract.
 
