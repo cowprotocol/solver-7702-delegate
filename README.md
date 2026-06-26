@@ -1,10 +1,165 @@
 # Solver7702Delegate
 
-`Solver7702Delegate` is a minimal ERC-7702 delegation target for CoW Protocol solvers. It lets a solver keep using its existing solver EOA while allowing a fixed set of auxiliary EOAs to submit transactions through that solver EOA. The main benefit is parallel settlement submission: auxiliary EOAs provide independent nonce lanes, while downstream contracts still see the solver EOA as `msg.sender`, which keeps the authorization clean.
-
-Read more about the initiative [here](https://www.notion.so/cownation/Solver7702Delegate-Design-Doc-3588da5f04ca80a1b521c436abf17724).
+`Solver7702Delegate` is a minimal ERC-7702 delegation target for CoW Protocol solvers. It enables parallel settlement submission through auxiliary accounts without changing the allowlisted solver identity.
 
 ## Usage
+
+> [!WARNING]
+> Auxiliary accounts can make arbitrary calls as the solver EOA, including CoW Protocol settlements. Secure them with the same care as the solver EOA.
+
+For driver configuration and solver-facing setup, see the [parallel settlement submission guide](https://docs.cow.fi/cow-protocol/tutorials/solvers/solver-7702-delegate).
+
+Basic flow:
+
+1. Choose up to five auxiliary accounts that can submit for the solver EOA.
+2. Deploy `Solver7702Delegate` with those accounts as approved callers.
+3. Authorize the delegate from the solver EOA.
+4. Keep sending settlements from the solver EOA when it is free.
+5. If the solver EOA has a pending transaction, send the next settlement from an auxiliary account.
+
+### How it works
+
+Each auxiliary account has its own nonce. This lets several settlements be submitted at the same time and mined in any order.
+
+Use direct submission while the solver EOA is free. If it already has a pending transaction, an auxiliary account can submit through its own nonce lane.
+
+```mermaid
+flowchart LR
+    SolverEOA{"Solver EOA"}
+    DirectTx["tx.data = settle(...)"]
+    AuxEOAs{"Auxiliary accounts<br/>0...N"}
+    DelegatedTx["tx.data = bytes20(target)<br/>|| targetCalldata"]
+    DelegatedSolver["Solver EOA<br/>delegated to Solver7702Delegate"]
+    TargetCall["target = GPv2Settlement<br/>targetCalldata = settle(...)"]
+    Settlement["GPv2Settlement"]
+
+    SolverEOA --> DirectTx --> Settlement
+    AuxEOAs --> DelegatedTx --> DelegatedSolver --> TargetCall --> Settlement
+
+    classDef eoa fill:#fff3bf,stroke:#b08900,color:#1f2937
+    classDef tx fill:#f3f0ff,stroke:#7048e8,color:#1f2937
+    classDef contract fill:#1864ab,stroke:#0b3558,stroke-width:3px,color:#ffffff,font-weight:bold
+    class SolverEOA,AuxEOAs eoa
+    class DirectTx,DelegatedTx,TargetCall tx
+    class DelegatedSolver,Settlement contract
+```
+
+The auxiliary account sends the transaction to the solver EOA, not to the delegate contract. The solver EOA's ERC-7702 delegation runs `Solver7702Delegate` at the solver EOA address.
+
+Inside `Solver7702Delegate`, `msg.sender` is the auxiliary account and `address(this)` is the solver EOA. Inside `GPv2Settlement`, `msg.sender` is still the solver EOA.
+
+The delegate expects packed calldata: `abi.encodePacked(bytes20(target), targetCalldata)`. Do not use `abi.encode(target, targetCalldata)`.
+
+### Deploy
+
+The deploy script reads up to five approved caller addresses from `APPROVED_CALLERS`. If fewer than five addresses are needed, omit the rest.
+
+```shell
+export APPROVED_CALLERS=<approved_caller_0>,<approved_caller_1>
+
+forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
+  --rpc-url <your_rpc_url> \
+  --private-key <your_private_key>
+```
+
+This command performs a dry run. Review the result, then run it again with `--broadcast` to deploy the contract.
+
+Deployments use `CREATE2` with a zero salt by default. To use a different salt, set `SALT` before running the deploy command:
+
+```shell
+export SALT=<bytes32_salt>
+```
+
+### Add or replace delegation
+
+After deployment, the solver EOA must authorize the delegate address.
+
+The examples use `--private-key`, but `cast` also supports keystores, hardware wallets, and cloud KMS signers. Run `cast wallet sign-auth --help` to see the options supported by your Foundry version.
+
+**Use `--self-broadcast` only when the solver EOA signs the authorization and also sends the transaction.**
+
+When the solver EOA both signs the authorization and sends the transaction:
+
+```shell
+signed_auth=$(cast wallet sign-auth <delegate_address> \
+  --private-key <solver_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id> \
+  --self-broadcast)
+
+cast send 0x0000000000000000000000000000000000000000 \
+  --auth ${signed_auth} \
+  --private-key <solver_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id>
+```
+
+**If the solver EOA sends the transaction and the authorization was signed without `--self-broadcast`, the transaction can succeed while the authorization is not applied.** In that case, `cast code <solver_eoa>` will still return `0x`.
+
+If another funded account sends the authorization transaction, the solver EOA still needs to sign the authorization. Omit `--self-broadcast`, then pass the sender's key to `cast send` as `--private-key <transaction_sender_private_key>`.
+
+### Verify delegation
+
+Check the solver EOA code:
+
+```shell
+cast code <solver_eoa> --rpc-url <rpc_url>
+```
+
+For ERC-7702 delegation, the code should be:
+
+```text
+0xef0100 || delegate_address
+```
+
+On a block explorer:
+
+1. Open the solver EOA. It may not have a normal contract code view. Confirm that its **Delegated to** banner points to the expected delegate address.
+2. Open the linked delegate address. Its **Contract** or **Code** tab must show verified source code that matches [`Solver7702Delegate`](./src/Solver7702Delegate.sol).
+3. Under **Constructor Arguments**, decode `approvedCallers` as `address[5]` and compare all five entries with the intended auxiliary accounts. Unused entries should be the zero address.
+
+You can also open the delegation transaction and check its **Authorizations** tab. It should identify the solver EOA, the expected delegated address, and a valid authorization.
+
+### Send a delegated call manually
+
+The reference driver sends delegated calls automatically. Use this command only for manual testing or a custom integration:
+
+```shell
+cast send <solver_eoa> $(cast concat-hex <target_address> <original_call_data>) \
+  --private-key <auxiliary_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id>
+```
+
+### Replace callers
+
+The caller set is immutable. To change callers, repeat the [deploy process](#deploy) with the new callers, then [authorize the new delegate](#add-or-replace-delegation).
+
+The old contract remains on-chain but has no power over the solver EOA once delegation points to the new contract.
+
+### Revoke delegation
+
+To stop using the current delegate, have the solver EOA authorize the zero address.
+
+Use the same [`--self-broadcast` rule](#add-or-replace-delegation) as when adding delegation.
+
+```shell
+signed_auth=$(cast wallet sign-auth 0x0000000000000000000000000000000000000000 \
+  --private-key <solver_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id> \
+  --self-broadcast)
+
+cast send 0x0000000000000000000000000000000000000000 \
+  --auth ${signed_auth} \
+  --private-key <solver_private_key> \
+  --rpc-url <rpc_url> \
+  --chain <chain_id>
+```
+
+Then verify that `cast code <solver_eoa>` no longer points to the previous delegate, using the [same verification method as before](#verify-delegation).
+
+## Development
 
 ### Just commands
 
@@ -53,8 +208,7 @@ just fmt
 
 ### Local tooling
 
-Foundry should be installed locally and pinned to `v1.7.1`.
-CI uses the same Foundry version.
+Foundry should be installed locally and pinned to `v1.7.1`. CI uses the same Foundry version.
 
 Install Foundry with:
 
@@ -108,66 +262,6 @@ The `script/` and `test/` folders have a small override config for their own sty
 just snapshot
 ```
 
-### Deploy
+## More docs
 
-The deploy script reads up to five approved caller addresses from `APPROVED_CALLERS`.
-If fewer than five addresses are needed, omit the rest.
-
-```shell
-export APPROVED_CALLERS=<approved_caller_0>,<approved_caller_1>
-
-just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
-  --rpc-url <your_rpc_url> \
-  --private-key <your_private_key> \
-  --broadcast
-```
-
-Deployments use `CREATE2` with a zero salt by default. To use a different salt, pass a `bytes32` value:
-
-```shell
-export SALT=<bytes32_salt>
-
-just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
-  --rpc-url <your_rpc_url> \
-  --private-key <your_private_key> \
-  --broadcast
-```
-
-To simulate the deployment and inspect the computed address, run the same command without `--broadcast`:
-
-```shell
-just forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
-  --rpc-url <your_rpc_url> \
-  --private-key <your_private_key>
-```
-
-## New project creation checklist
-
-The following operations need to be performed after this repository has been created.
-
-- [ ] Discuss and confirm the project license with the team lead before starting implementation work. You must set this up before writing project code.
-  - [ ] The license is very likely going to be one of the following:
-    - [ ] `MIT OR Apache-2.0` for projects with low strategic relevance (included by default in the template).
-    - [ ] `LGPL-3.0-or-later` for projects with high strategic relevance.
-    - [ ] In some cases, a different license may be needed.
-  - [ ] If it's `MIT OR Apache-2.0`, the license is already included. Otherwise, remove the existing license files and add the selected license as a file in the repository root.
-  - [ ] Update `dev/package.json` with the selected license.
-  - [ ] Update each Solidity smart contract's `SPDX-License-Identifier` with the selected license.
-- [ ] In GitHub repo settings:
-  - [ ] Add a new ruleset called "Protected branches" and include the following changes:
-    - Enforcement status: active
-    - Target branches: Include default branch
-    - Require linear history
-    - Require a pull request before merging
-      - Required approvals: 1
-      - Allowed merge methods: Squash
-    - Block force pushes
-  - [ ] In General → Features → Pull requests:
-    - Select "Pull request title and description" in "Default commit message" option
-    - Unckeck "Allow merge commits" option
-    - Check "Allow auto-merge" option
-- [ ] Run `forge install` to install the dependencies. This will create a new `foundry.lock` file which you should commit to the project
-- [ ] Set up [Local tooling](#local-tooling) so Solhint and Slither use the pinned project versions
-- [ ] Update the project details in `dev/package.json`, including `name` and `description`
-- [ ] Make sure you use the [latest version of Solidity](https://github.com/argotorg/solidity/releases) by updating the `solc` version in `foundry.toml`
-- [ ] Once all entries in this list are checked, delete this section from the readme
+The external solver guide is available at https://docs.cow.fi/cow-protocol/tutorials/solvers/solver-7702-delegate
