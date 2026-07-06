@@ -2,8 +2,14 @@
 // easier to maintain.
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
-  // Disable every built-in manager (npm, dockerfile, ...) except github-actions.
-  enabledManagers: ["github-actions"],
+  // Enable package managers for dependency updates.
+  enabledManagers: ["github-actions", "npm", "pep621"],
+  npm: {
+    managerFilePatterns: ["/(^|/)dev/package\\.json$/", "/(^|/)dev/pnpm-workspace\\.yaml$/"],
+  },
+  pep621: {
+    managerFilePatterns: ["/(^|/)dev/pyproject\\.toml$/"],
+  },
   // PR titles use Conventional Commits: `deps(<action>): ...`
   semanticCommits: "enabled",
   semanticCommitType: "deps",
@@ -27,6 +33,18 @@
       separateMajorMinor: false,
       semanticCommitScope: "{{depName}}",
       commitMessageTopic: "{{depName}}",
+    },
+    // Dev tooling updates: preserve Dependabot's previous /dev npm and uv
+    // coverage, but group it into a single weekly PR to avoid noisy rollouts.
+    {
+      matchManagers: ["npm", "pep621"],
+      schedule: ["on monday"],
+      minimumReleaseAge: "14 days",
+      groupName: "dev dependencies",
+      groupSlug: "dev-dependencies",
+      separateMajorMinor: false,
+      semanticCommitScope: "dev-dependencies",
+      commitMessageTopic: "dev dependencies",
     },
   ],
 }
