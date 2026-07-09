@@ -163,7 +163,7 @@ Then verify that `cast code <solver_eoa>` no longer points to the previous deleg
 
 Etherscan marks solver EOAs as a **Similar Match** after one matching delegate contract is verified on the same chain. Instead of verifying every solver EOA from Rust, deploy and verify one dummy delegate per chain.
 
-Set `APPROVED_CALLERS` to five zero addresses and set `ETHERSCAN_API_KEY`. `foundry.toml` reads the same Etherscan key for every chain.
+Set `APPROVED_CALLERS` to five zero addresses and set `ETHERSCAN_API_KEY`. Foundry reads the same Etherscan key from the environment for every chain.
 
 ```shell
 export ZERO_ADDRESS=0x0000000000000000000000000000000000000000
