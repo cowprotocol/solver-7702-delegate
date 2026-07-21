@@ -31,6 +31,8 @@
       versioning: "semver-coerced",
       pinDigests: true,
       separateMajorMinor: false,
+      groupName: "GitHub Actions",
+      groupSlug: "github-actions",
       semanticCommitScope: "{{depName}}",
       commitMessageTopic: "{{depName}}",
     },
