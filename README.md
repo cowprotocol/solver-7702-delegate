@@ -168,11 +168,13 @@ Set `APPROVED_CALLERS` to five zero addresses and set `ETHERSCAN_API_KEY`. Found
 ```shell
 export ZERO_ADDRESS=0x0000000000000000000000000000000000000000
 export APPROVED_CALLERS=${ZERO_ADDRESS},${ZERO_ADDRESS},${ZERO_ADDRESS},${ZERO_ADDRESS},${ZERO_ADDRESS}
+export RPC_URL=<your_rpc_url>
+export PRIVATE_KEY=<your_private_key>
 export ETHERSCAN_API_KEY=<etherscan_api_key>
 
 just build && forge script script/DeploySolver7702Delegate.s.sol:DeploySolver7702Delegate \
-  --rpc-url <your_rpc_url> \
-  --private-key <your_private_key> \
+  --rpc-url "${RPC_URL}" \
+  --private-key "${PRIVATE_KEY}" \
   --broadcast \
   --verify \
   --verifier etherscan
@@ -181,16 +183,17 @@ just build && forge script script/DeploySolver7702Delegate.s.sol:DeploySolver770
 If the dummy delegate is already deployed and only needs verification:
 
 ```shell
-export ZERO_ADDRESS=0x0000000000000000000000000000000000000000
-export APPROVED_CALLERS=${ZERO_ADDRESS},${ZERO_ADDRESS},${ZERO_ADDRESS},${ZERO_ADDRESS},${ZERO_ADDRESS}
 export ETHERSCAN_API_KEY=<etherscan_api_key>
 
 forge verify-contract <deployed_delegate_address> src/Solver7702Delegate.sol:Solver7702Delegate \
   --chain <chain_id> \
-  --constructor-args $(cast abi-encode "constructor(address[5])" "[${APPROVED_CALLERS}]") \
   --verifier etherscan \
   --watch
 ```
+
+If the explorer has not indexed the deployment yet, wait and retry. If the preliminary "already verified" check fails, add `--skip-is-verified-check`.
+
+With the default zero salt and zeroed approved callers, CREATE2 produces the same address across chains as long as the deployer and creation bytecode are identical.
 
 After the dummy delegate is verified, later solver EOAs with the same delegate bytecode will be verified automatically by Etherscan's "Similar Match" feature.
 
