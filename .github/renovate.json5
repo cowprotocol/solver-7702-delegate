@@ -14,7 +14,7 @@
   semanticCommits: "enabled",
   semanticCommitType: "deps",
   packageRules: [
-    // GitHub Actions updates: run weekly, skip releases newer than 2 weeks
+    // GitHub Actions updates: run monthly, skip releases newer than 2 weeks
     // to avoid picking up freshly published versions that may be unstable or
     // compromised, and pin to full commit SHAs (with the version as a
     // trailing comment) rather than mutable tags.
@@ -22,7 +22,7 @@
     // (typically major) instead of a separate minor PR.
     {
       matchManagers: ["github-actions"],
-      schedule: ["on monday"],
+      schedule: ["* 0-3 1 * *"], // 00:00-03:59 UTC on the first day of each month
       minimumReleaseAge: "14 days",
       // Track upgrades by semver tag, but pin the resolved version to its full
       // commit SHA (semver tag kept as a trailing comment). Use the coerced
@@ -37,10 +37,10 @@
       commitMessageTopic: "{{depName}}",
     },
     // Dev tooling updates: preserve Dependabot's previous /dev npm and uv
-    // coverage, but group it into a single weekly PR to avoid noisy rollouts.
+    // coverage, but group it into a single monthly PR to avoid noisy rollouts.
     {
       matchManagers: ["npm", "pep621"],
-      schedule: ["on monday"],
+      schedule: ["* 0-3 1 * *"], // 00:00-03:59 UTC on the first day of each month
       minimumReleaseAge: "14 days",
       groupName: "dev dependencies",
       groupSlug: "dev-dependencies",
