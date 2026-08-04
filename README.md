@@ -159,6 +159,11 @@ cast send 0x0000000000000000000000000000000000000000 \
 
 Then verify that `cast code <solver_eoa>` no longer points to the previous delegate, using the [same verification method as before](#verify-delegation).
 
+## Audits
+
+- Gnosis: [CoW 7702 Solver Delegate Audit (May 2026)](./audits/CoW-7702-delegate.pdf)
+- ChainSecurity: [Solver7702Delegate Security Audit (June 2026)](./audits/ChainSecurity_Cowswap_Solver7702Delegate_Audit.pdf)
+
 ## Development
 
 ### Just commands
