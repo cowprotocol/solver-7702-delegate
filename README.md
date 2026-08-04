@@ -161,6 +161,7 @@ Then verify that `cast code <solver_eoa>` no longer points to the previous deleg
 
 ## Audits
 
+- Gnosis: [CoW 7702 Solver Delegate Audit (May 2026)](./audits/CoW-7702-delegate.pdf)
 - ChainSecurity: [Solver7702Delegate Security Audit (June 2026)](./audits/ChainSecurity_Cowswap_Solver7702Delegate_Audit.pdf)
 
 ## Development
