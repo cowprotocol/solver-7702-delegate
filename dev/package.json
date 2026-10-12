@@ -4,8 +4,8 @@
   "private": true,
   "description": "Local development dependencies for the Solver7702Delegate contract.",
   "license": "(MIT OR Apache-2.0)",
-  "packageManager": "pnpm@10.33.2",
+  "packageManager": "pnpm@12.8.1",
   "devDependencies": {
-    "solhint": "6.2.1"
+    "solhint": "6.2.4"
   }
 }
