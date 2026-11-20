@@ -9,7 +9,7 @@ import {Solver7702Delegate} from "../src/Solver7702Delegate.sol";
 /// @author CoW Foundation
 /// @notice Deploys Solver7702Delegate.
 contract DeploySolver7702Delegate is Script {
-    uint256 internal constant APPROVED_CALLERS_LENGTH = 5;
+    uint256 internal constant APPROVED_CALLERS_LENGTH = 8;
 
     error InvalidApprovedCallersLength(uint256 length);
 

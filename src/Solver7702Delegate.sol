@@ -23,14 +23,26 @@ contract Solver7702Delegate {
     /// @notice Address of the fifth approved caller
     address private immutable APPROVED_CALLER_4;
 
+    /// @notice Address of the sixth approved caller
+    address private immutable APPROVED_CALLER_5;
+
+    /// @notice Address of the seventh approved caller
+    address private immutable APPROVED_CALLER_6;
+
+    /// @notice Address of the eighth approved caller
+    address private immutable APPROVED_CALLER_7;
+
     /// @notice Constructor to initialize the approved callers
     /// @param approvedCallers The addresses of the approved callers
-    constructor(address[5] memory approvedCallers) {
+    constructor(address[8] memory approvedCallers) {
         APPROVED_CALLER_0 = approvedCallers[0];
         APPROVED_CALLER_1 = approvedCallers[1];
         APPROVED_CALLER_2 = approvedCallers[2];
         APPROVED_CALLER_3 = approvedCallers[3];
         APPROVED_CALLER_4 = approvedCallers[4];
+        APPROVED_CALLER_5 = approvedCallers[5];
+        APPROVED_CALLER_6 = approvedCallers[6];
+        APPROVED_CALLER_7 = approvedCallers[7];
     }
 
     /// @notice Fallback function to handle calls to the delegate
@@ -39,7 +51,8 @@ contract Solver7702Delegate {
         // Possibly short circuit by recognizing one of the approved callers
         if (
             msg.sender == APPROVED_CALLER_0 || msg.sender == APPROVED_CALLER_1 || msg.sender == APPROVED_CALLER_2
-                || msg.sender == APPROVED_CALLER_3 || msg.sender == APPROVED_CALLER_4
+                || msg.sender == APPROVED_CALLER_3 || msg.sender == APPROVED_CALLER_4 || msg.sender == APPROVED_CALLER_5
+                || msg.sender == APPROVED_CALLER_6 || msg.sender == APPROVED_CALLER_7
         ) return _callThrough();
 
         // Accept ETH from anyone, even if unauthorized
