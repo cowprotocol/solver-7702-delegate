@@ -11,7 +11,7 @@ For driver configuration and solver-facing setup, see the [parallel settlement s
 
 Basic flow:
 
-1. Choose up to five auxiliary accounts that can submit for the solver EOA.
+1. Choose up to eight auxiliary accounts that can submit for the solver EOA.
 2. Deploy `Solver7702Delegate` with those accounts as approved callers.
 3. Authorize the delegate from the solver EOA.
 4. Keep sending settlements from the solver EOA when it is free.
@@ -52,7 +52,7 @@ The delegate expects packed calldata: `abi.encodePacked(bytes20(target), targetC
 
 ### Deploy
 
-The deploy script reads up to five approved caller addresses from `APPROVED_CALLERS`. If fewer than five addresses are needed, omit the rest.
+The deploy script reads up to eight approved caller addresses from `APPROVED_CALLERS`. If fewer than eight addresses are needed, omit the rest.
 
 ```shell
 export APPROVED_CALLERS=<approved_caller_0>,<approved_caller_1>
@@ -116,7 +116,7 @@ On a block explorer:
 
 1. Open the solver EOA. It may not have a normal contract code view. Confirm that its **Delegated to** banner points to the expected delegate address.
 2. Open the linked delegate address. Its **Contract** or **Code** tab must show verified source code that matches [`Solver7702Delegate`](./src/Solver7702Delegate.sol).
-3. Under **Constructor Arguments**, decode `approvedCallers` as `address[5]` and compare all five entries with the intended auxiliary accounts. Unused entries should be the zero address.
+3. Under **Constructor Arguments**, decode `approvedCallers` as `address[8]` and compare all eight entries with the intended auxiliary accounts. Unused entries should be the zero address.
 
 You can also open the delegation transaction and check its **Authorizations** tab. It should identify the solver EOA, the expected delegated address, and a valid authorization.
 

@@ -102,6 +102,32 @@ contract Solver7702DelegateTest is BaseTest {
         assertEq(returnData, expectedReturnData, "return data should match target output");
     }
 
+    /// @dev Exercises every approved caller slot so a missing or duplicated comparison in the
+    /// authorization check fails deterministically. Also snapshots gas per slot, since later slots
+    /// pay for more comparisons before short-circuiting.
+    function test_unit_fallback_success_forwardsFromEveryApprovedCaller() public {
+        bytes memory payload = hex"abcdef";
+        bytes memory expectedReturnData = hex"010203";
+        vm.mockCall(fallbackTarget, payload, expectedReturnData);
+        vm.expectCall(fallbackTarget, uint256(0), payload, uint64(approvedCallers.length));
+
+        for (uint256 i; i < approvedCallers.length; ++i) {
+            vm.prank(approvedCallers[i]);
+            (bool success, bytes memory returnData) =
+                address(delegateContract).call(_packedCalldata(fallbackTarget, payload));
+            vm.snapshotGasLastCall(
+                string.concat("approved caller ", vm.toString(i), " target payload - success - forwards")
+            );
+
+            assertTrue(success, string.concat("approved caller ", vm.toString(i), " should forward"));
+            assertEq(
+                returnData,
+                expectedReturnData,
+                string.concat("approved caller ", vm.toString(i), " return data should bubble")
+            );
+        }
+    }
+
     function test_fuzz_fallback_success_forwardsPayloadFromApprovedCaller(
         uint8 callerIndex,
         bytes memory payload,
